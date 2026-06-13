@@ -1,99 +1,163 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import tempfile
 import os
-import json
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+os.environ["CHROMA_PERSIST_DIR"] = "/tmp/chroma_db"
+os.environ["HF_HOME"] = "/tmp/hf"
+
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List
+import tempfile
+import uuid
+
+from rag.config import get_settings
 from rag.loaders import load_document
 from rag.text_utils import chunk_text
-from rag.llm import load_llm, summarize_document
-from rag.retrieval import create_vector_db, create_bm25
-from rag.graph import create_rag_graph
+from rag.llm import (
+    load_llm, MissingAPIKeyError, summarize_document, 
+    rewrite_followup_query, detect_relevant_documents, generate_multi_queries
+)
+from rag.query_classification import is_followup_query
+from rag.prompts import build_qa_prompt
+from rag.retrieval import (
+    create_bm25, hybrid_search, 
+    rerank_results, filter_results_by_documents
+)
 
-app = FastAPI(title="Advanced RAG API")
+app = FastAPI(title="DocMind AI API")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# In-memory global state for serverless
+# Vercel Serverless state (Ephemeral)
 GLOBAL_STATE = {
-    "chunks": [],
-    "metadata": [],
     "vector_db": None,
     "bm25": None,
-    "document_summaries": {}
+    "chunks": [],
+    "metadata": [],
+    "document_summaries": {},
+    "uploaded_hashes": set(),
+    "uploaded_file_names": []
 }
 
-rag_graph = create_rag_graph()
-
-class ChatRequest(BaseModel):
-    query: str
-    history: list[dict] = []
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "docs": len(GLOBAL_STATE["uploaded_file_names"])}
 
 @app.post("/api/upload")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_documents(files: List[UploadFile] = File(...)):
+    settings = get_settings()
+    
+    api_key = os.getenv("GROQ_API_KEY", "")
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file.filename.split('.')[-1]}") as tmp:
-            content = await file.read()
-            tmp.write(content)
-            temp_path = tmp.name
+        llm = load_llm(api_key=api_key)
+    except MissingAPIKeyError:
+        raise HTTPException(status_code=401, detail="GROQ_API_KEY is missing.")
+
+    all_chunks = GLOBAL_STATE["chunks"]
+    all_metadata = GLOBAL_STATE["metadata"]
+    new_file_names = list(GLOBAL_STATE["uploaded_file_names"])
+    
+    for uploaded_file in files:
+        content = await uploaded_file.read()
+        if len(content) > settings.max_file_size_bytes:
+            raise HTTPException(status_code=400, detail=f"{uploaded_file.filename} exceeds size limit.")
             
-        pages = load_document(temp_path)
-        doc_text = ""
-        new_chunks = []
-        new_metadata = []
-        for page_num, text in pages:
-            doc_text += text + "\n"
-            chunks = chunk_text(text)
-            for chunk in chunks:
-                new_chunks.append(chunk)
-                new_metadata.append({"source": file.filename, "page": page_num})
+        suffix = os.path.splitext(uploaded_file.filename)[1] or ".bin"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+            tmp_file.write(content)
+            temp_path = tmp_file.name
+            
+        try:
+            pages = load_document(temp_path)
+            doc_text = ""
+            for page_num, text in pages:
+                doc_text += text + "\n"
+                chunks = chunk_text(text)[:settings.max_chunks_per_page]
+                for idx, chunk in enumerate(chunks):
+                    tagged_chunk = f"[SOURCE: {uploaded_file.filename}]\n[PAGE: {page_num}]\n\n{chunk}"
+                    all_chunks.append(tagged_chunk)
+                    all_metadata.append({"source": uploaded_file.filename, "page": page_num, "chunk_id": idx})
+            
+            summary = summarize_document(llm, doc_text, uploaded_file.filename)
+            GLOBAL_STATE["document_summaries"][uploaded_file.filename] = summary
+            if uploaded_file.filename not in new_file_names:
+                new_file_names.append(uploaded_file.filename)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
                 
-        os.remove(temp_path)
-        
-        GLOBAL_STATE["chunks"].extend(new_chunks)
-        GLOBAL_STATE["metadata"].extend(new_metadata)
-        
-        llm = load_llm()
-        summary = summarize_document(llm, doc_text, file.filename)
-        GLOBAL_STATE["document_summaries"][file.filename] = summary
-        
-        GLOBAL_STATE["vector_db"] = create_vector_db(GLOBAL_STATE["chunks"], GLOBAL_STATE["metadata"])
-        GLOBAL_STATE["bm25"] = create_bm25(GLOBAL_STATE["chunks"])
-        
-        return {"status": "success", "message": f"Indexed {len(new_chunks)} chunks."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if not all_chunks:
+        raise HTTPException(status_code=400, detail="No extractable text found.")
+
+    bm25 = create_bm25(all_chunks)
+
+    GLOBAL_STATE["bm25"] = bm25
+    GLOBAL_STATE["chunks"] = all_chunks
+    GLOBAL_STATE["metadata"] = all_metadata
+    GLOBAL_STATE["uploaded_file_names"] = new_file_names
+    
+    return {"message": "Files indexed", "count": len(new_file_names), "chunks": len(all_chunks)}
 
 @app.post("/api/chat")
-async def chat_endpoint(req: ChatRequest):
-    if not GLOBAL_STATE["chunks"]:
-        raise HTTPException(status_code=400, detail="No documents indexed.")
-        
-    state = {
-        "question": req.query,
-        "chat_history": req.history,
-        "global_state": GLOBAL_STATE,
-        "intent": "",
-        "expanded_queries": [],
-        "retrieved_chunks": [],
-        "generation": "",
-        "sources": []
-    }
+async def chat(request: dict):
+    query = request.get("query")
+    history = request.get("history", [])
     
-    try:
-        result = rag_graph.invoke(state)
+    if not GLOBAL_STATE["bm25"]:
+        raise HTTPException(status_code=400, detail="Please upload documents first.")
         
-        return {
-            "answer": result["generation"],
-            "sources": result["sources"],
-            "intent": result["intent"]
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    api_key = os.getenv("GROQ_API_KEY", "")
+    try:
+        llm = load_llm(api_key=api_key)
+    except MissingAPIKeyError:
+        raise HTTPException(status_code=401, detail="GROQ_API_KEY is missing.")
+
+    settings = get_settings()
+    
+    if is_followup_query(query):
+        query = rewrite_followup_query(llm, query, history)
+        
+    relevant_docs = detect_relevant_documents(query, GLOBAL_STATE["document_summaries"], llm)
+    queries = generate_multi_queries(llm, query)
+    queries.append(query)
+    
+    all_results = []
+    for q in set(queries):
+        res = hybrid_search(q, GLOBAL_STATE["vector_db"], GLOBAL_STATE["bm25"], GLOBAL_STATE["chunks"])
+        all_results.extend(res)
+        
+    filtered = filter_results_by_documents(all_results, relevant_docs)
+    
+    seen = set()
+    unique_res = []
+    for r in filtered:
+        if r["text"] not in seen:
+            seen.add(r["text"])
+            unique_res.append(r)
+            
+    ranked = rerank_results(query, unique_res)[:settings.default_top_k]
+    
+    context = "\n\n---\n\n".join([r["text"] for r in ranked])
+    prompt = build_qa_prompt(query, context, history)
+    
+    from langchain_core.messages import HumanMessage
+    response = llm.invoke([HumanMessage(content=prompt)])
+    
+    sources = []
+    for r in ranked:
+        md = r.get("metadata", {})
+        s = md.get("source", "Unknown")
+        p = md.get("page", "?")
+        sources.append(f"{s} (Page {p})")
+        
+    return {
+        "response": response.content,
+        "sources": list(set(sources))
+    }
