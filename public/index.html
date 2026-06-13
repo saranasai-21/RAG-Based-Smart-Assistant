@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DocMind AI - Premium Assistant</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
     <link rel="stylesheet" href="index.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
 </head>
 <body>
     <div class="app-container">
@@ -46,26 +46,28 @@
                     <span id="status-badge" class="status-badge status-idle">○ Awaiting Documents</span>
                 </div>
             </div>
+
+            <div class="sidebar-header mt-4" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>✨ Features</h2>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="pro-toggle">
+                    <span class="slider round"></span>
+                </label>
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--primary);">PRO</span>
+            </div>
+            
+            <div id="pro-features" class="pro-features" style="display: none;">
+                <button class="feature-btn">📚 Multi-Document Intelligence</button>
+                <button class="feature-btn">🔍 Hybrid Search</button>
+                <button class="feature-btn">📈 Reranking</button>
+            </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
             <header class="app-header">
-                <div class="header-title-row">
-                    <h1>🧠 DocMind AI</h1>
-                    <label class="pro-toggle-label">
-                        <span class="pro-text">Pro Mode</span>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="pro-mode-toggle">
-                            <span class="slider"></span>
-                        </div>
-                    </label>
-                </div>
-                <div class="feature-buttons hidden" id="feature-buttons">
-                    <button class="feature-btn active">⚡ Multi-Document Intelligence</button>
-                    <button class="feature-btn active">🔍 Hybrid Search</button>
-                    <button class="feature-btn active">🎯 Reranking</button>
-                </div>
+                <h1>🧠 DocMind AI</h1>
+                <p>Multi-Document Intelligence &nbsp;·&nbsp; Hybrid Search &nbsp;·&nbsp; Reranking</p>
             </header>
 
             <div class="chat-container" id="chat-container">

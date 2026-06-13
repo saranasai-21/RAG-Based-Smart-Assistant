@@ -149,16 +149,24 @@ document.addEventListener('DOMContentLoaded', () => {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    // Pro Mode Toggle
-    const proModeToggle = document.getElementById('pro-mode-toggle');
-    const featureButtons = document.getElementById('feature-buttons');
-    if (proModeToggle && featureButtons) {
-        proModeToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                featureButtons.classList.remove('hidden');
-            } else {
-                featureButtons.classList.add('hidden');
-            }
+    // PRO Features Logic
+    const proToggle = document.getElementById('pro-toggle');
+    const proFeatures = document.getElementById('pro-features');
+    const featureBtns = document.querySelectorAll('.feature-btn');
+
+    proToggle.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            proFeatures.style.display = 'flex';
+            // Enable all features by default when PRO is turned on
+            featureBtns.forEach(btn => btn.classList.add('active'));
+        } else {
+            proFeatures.style.display = 'none';
+        }
+    });
+
+    featureBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
         });
-    }
+    });
 });
