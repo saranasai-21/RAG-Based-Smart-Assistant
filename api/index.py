@@ -13,10 +13,10 @@ from rag.loaders import load_document
 from rag.text_utils import chunk_text
 from rag.llm import (
     load_llm, MissingAPIKeyError, summarize_document, 
-    is_followup_query, rewrite_followup_query, 
-    detect_relevant_documents, generate_multi_queries, 
-    build_qa_prompt
+    rewrite_followup_query, detect_relevant_documents, generate_multi_queries
 )
+from rag.query_classification import is_followup_query
+from rag.prompts import build_qa_prompt
 from rag.retrieval import (
     create_vector_db, create_bm25, hybrid_search, 
     rerank_results, filter_results_by_documents
