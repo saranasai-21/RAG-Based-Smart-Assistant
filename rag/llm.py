@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import os
 
 from rag.config import get_settings
 from rag.logging_config import get_logger
@@ -18,32 +19,32 @@ logger = get_logger(__name__)
 
 
 class MissingAPIKeyError(RuntimeError):
-    """Raised when no API key is configured."""
+    """Raised when no Groq API key is configured."""
 
 
 def load_llm(api_key: str | None = None):
     """Construct a :class:`ChatGoogleGenerativeAI` client.
 
     Args:
-        api_key: Optional explicit key; falls back to ``GEMINI_API_KEY``.
+        api_key: Optional explicit key; falls back to ``GOOGLE_API_KEY``.
 
     Raises:
         MissingAPIKeyError: when no key can be resolved.
     """
 
-    import os
-    key = api_key or os.getenv("GEMINI_API_KEY")
+    settings = get_settings()
+    key = api_key or os.getenv("GOOGLE_API_KEY", "")
     if not key:
         raise MissingAPIKeyError(
-            "GEMINI_API_KEY is not set. Add it to your environment or .env file."
+            "GOOGLE_API_KEY is not set. Add it to your environment or .env file."
         )
 
     from langchain_google_genai import ChatGoogleGenerativeAI
 
     return ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
-        google_api_key=key,
-        temperature=0.0,
+        model="gemini-2.5-flash",
+        api_key=key,
+        temperature=settings.llm_temperature,
     )
 
 

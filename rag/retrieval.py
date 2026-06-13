@@ -1,106 +1,130 @@
-"""Advanced Retrieval Module: Hybrid Search, Reranking, and Context Compression."""
-
 from __future__ import annotations
-
+import os
 import numpy as np
-from langchain_chroma import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from sentence_transformers import CrossEncoder
+from typing import List, Dict, Any
 
-def create_vector_db(chunks: list[str], metadata: list[dict], persist_directory: str = "/tmp/chroma_db"):
-    """Create a Chroma vector database."""
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return Chroma.from_texts(
-        texts=chunks,
-        embedding=embeddings,
-        metadatas=metadata,
-        persist_directory=persist_directory
-    )
+from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_core.documents import Document
+
+from rag.config import get_settings
+from rag.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+Result = dict[str, float | dict | str]
 
 def create_bm25(chunks: list[str]):
-    """Build a BM25 index over whitespace-tokenised chunks."""
+    """Build a BM25 index over whitespace-tokenised ``chunks``."""
     from rank_bm25 import BM25Okapi
     tokenized = [chunk.split() for chunk in chunks]
     return BM25Okapi(tokenized)
 
+def create_vector_db(chunks: list[str], metadata_list: list[dict]):
+    """Build an in-memory vector store using Gemini Embeddings."""
+    api_key = os.getenv("GOOGLE_API_KEY", "")
+    if not api_key:
+        logger.warning("GOOGLE_API_KEY not found. Falling back to BM25-only.")
+        return None
+    
+    try:
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
+        db = InMemoryVectorStore(embeddings)
+        docs = [Document(page_content=chunk, metadata=meta) for chunk, meta in zip(chunks, metadata_list)]
+        db.add_documents(docs)
+        return db
+    except Exception as e:
+        logger.error(f"Failed to create vector db: {e}")
+        return None
+
 def hybrid_search(
     query: str,
-    vector_db,
+    vector_db: InMemoryVectorStore | None,
     bm25,
     chunks: list[str],
     metadata_list: list[dict] = None,
-    k: int = 10,
-    alpha: float = 0.5
-) -> list[dict]:
-    """Perform hybrid search using Reciprocal Rank Fusion (RRF)."""
+    k: int = 5,
+    alpha: float = 0.5, # 0.0 = BM25 only, 1.0 = Vector only
+) -> list[Result]:
+    """Perform Hybrid Search using Reciprocal Rank Fusion (RRF)."""
+    settings = get_settings()
+    k = k or settings.default_top_k
     
-    results_map = {}
+    # 1. BM25 Search
+    bm25_scores = bm25.get_scores(query.split())
+    bm25_top_idx = np.argsort(bm25_scores)[-k*2:][::-1] # Get top 2k
     
-    # 1. Dense Search
+    bm25_results = []
+    for rank, idx in enumerate(bm25_top_idx):
+        score = float(bm25_scores[idx])
+        if score > 0:
+            bm25_results.append({
+                "id": idx,
+                "text": chunks[idx],
+                "score": score,
+                "rank": rank + 1,
+                "metadata": metadata_list[idx] if metadata_list else {},
+            })
+            
+    # 2. Vector Search
+    vector_results = []
     if vector_db:
-        dense_results = vector_db.similarity_search_with_relevance_scores(query, k=k)
-        for rank, (doc, score) in enumerate(dense_results):
-            text = doc.page_content
-            if text not in results_map:
-                results_map[text] = {"text": text, "metadata": doc.metadata, "dense_rank": rank + 1, "sparse_rank": 60}
-            else:
-                results_map[text]["dense_rank"] = rank + 1
-
-    # 2. Sparse Search
-    if bm25:
-        bm25_scores = bm25.get_scores(query.split())
-        top_idx = np.argsort(bm25_scores)[-k:][::-1]
-        for rank, idx in enumerate(top_idx):
-            score = float(bm25_scores[idx])
-            if score > 0:
-                text = chunks[idx]
-                if text not in results_map:
-                    results_map[text] = {
-                        "text": text, 
-                        "metadata": metadata_list[idx] if metadata_list else {}, 
-                        "dense_rank": 60, 
-                        "sparse_rank": rank + 1
-                    }
-                else:
-                    results_map[text]["sparse_rank"] = rank + 1
-
-    # 3. Reciprocal Rank Fusion
-    k_rrf = 60
-    final_results = []
-    for text, data in results_map.items():
-        rrf_score = (alpha / (k_rrf + data["dense_rank"])) + ((1 - alpha) / (k_rrf + data["sparse_rank"]))
-        final_results.append({
-            "text": data["text"],
-            "metadata": data["metadata"],
-            "score": rrf_score
-        })
+        docs_with_scores = vector_db.similarity_search_with_score(query, k=k*2)
+        for rank, (doc, score) in enumerate(docs_with_scores):
+            # Find original index by text matching (or id)
+            try:
+                idx = chunks.index(doc.page_content)
+                vector_results.append({
+                    "id": idx,
+                    "text": doc.page_content,
+                    "score": float(score),
+                    "rank": rank + 1,
+                    "metadata": doc.metadata,
+                })
+            except ValueError:
+                pass
+                
+    # 3. Reciprocal Rank Fusion (RRF)
+    rrf_k = 60
+    fused_scores = {}
+    
+    for res in bm25_results:
+        idx = res["id"]
+        fused_scores[idx] = fused_scores.get(idx, 0.0) + (1.0 / (rrf_k + res["rank"])) * (1.0 - alpha)
         
-    final_results.sort(key=lambda x: x["score"], reverse=True)
+    for res in vector_results:
+        idx = res["id"]
+        fused_scores[idx] = fused_scores.get(idx, 0.0) + (1.0 / (rrf_k + res["rank"])) * alpha
+        
+    # Combine results
+    final_results = []
+    seen_idx = set()
+    for idx, score in sorted(fused_scores.items(), key=lambda x: x[1], reverse=True):
+        if idx not in seen_idx:
+            seen_idx.add(idx)
+            final_results.append({
+                "text": chunks[idx],
+                "score": score,
+                "metadata": metadata_list[idx] if metadata_list else {},
+            })
+            
     return final_results[:k]
 
-def filter_results_by_documents(results: list[dict], relevant_docs: list[str]) -> list[dict]:
-    """Keep only results whose source is in relevant_docs."""
+def filter_results_by_documents(results: list[Result], relevant_docs: list[str]) -> list[Result]:
+    """Keep only results whose source is in ``relevant_docs`` (if provided)."""
     if not relevant_docs:
         return results
     return [item for item in results if item.get("metadata", {}).get("source", "") in relevant_docs]
 
-def rerank_results(query: str, results: list[dict], top_k: int = 5) -> list[dict]:
-    """Apply a Cross-Encoder to re-score and compress context."""
-    if not results:
-        return []
-        
-    model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', max_length=512)
-    pairs = [[query, r["text"]] for r in results]
-    scores = model.predict(pairs)
-    
-    for i, r in enumerate(results):
-        r["rerank_score"] = float(scores[i])
-        
-    results.sort(key=lambda x: x["rerank_score"], reverse=True)
-    return results[:top_k]
+def rerank_results(query: str, results: list[Result], llm=None) -> list[Result]:
+    """Rerank retrieved chunks using LLM or simple passthrough."""
+    # LLM-based reranking is slow and consumes a lot of tokens, 
+    # so we'll just passthrough for now since RRF is already very strong.
+    # A true Cross-Encoder is not possible on Vercel limits without an API like Cohere.
+    return results
 
-def format_sources(retrieved_chunks: list[dict]) -> str:
-    """Render a de-duplicated bullet list of source (Page n) citations."""
+def format_sources(retrieved_chunks: list[Result]) -> str:
+    """Render a de-duplicated bullet list of ``source (Page n)`` citations."""
     sources: list[str] = []
     seen: set[str] = set()
     for item in retrieved_chunks:
