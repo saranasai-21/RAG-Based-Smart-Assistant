@@ -148,4 +148,17 @@ document.addEventListener('DOMContentLoaded', () => {
         chatContainer.appendChild(msgDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
+
+    // Pro Mode Toggle
+    const proModeToggle = document.getElementById('pro-mode-toggle');
+    const featureButtons = document.getElementById('feature-buttons');
+    if (proModeToggle && featureButtons) {
+        proModeToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                featureButtons.classList.remove('hidden');
+            } else {
+                featureButtons.classList.add('hidden');
+            }
+        });
+    }
 });

@@ -6,6 +6,7 @@
     <title>DocMind AI - Premium Assistant</title>
     <link rel="stylesheet" href="index.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
 </head>
 <body>
     <div class="app-container">
@@ -50,8 +51,21 @@
         <!-- Main Content -->
         <main class="main-content">
             <header class="app-header">
-                <h1>🧠 DocMind AI</h1>
-                <p>Multi-Document Intelligence &nbsp;·&nbsp; Hybrid Search &nbsp;·&nbsp; Reranking</p>
+                <div class="header-title-row">
+                    <h1>🧠 DocMind AI</h1>
+                    <label class="pro-toggle-label">
+                        <span class="pro-text">Pro Mode</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="pro-mode-toggle">
+                            <span class="slider"></span>
+                        </div>
+                    </label>
+                </div>
+                <div class="feature-buttons hidden" id="feature-buttons">
+                    <button class="feature-btn active">⚡ Multi-Document Intelligence</button>
+                    <button class="feature-btn active">🔍 Hybrid Search</button>
+                    <button class="feature-btn active">🎯 Reranking</button>
+                </div>
             </header>
 
             <div class="chat-container" id="chat-container">
