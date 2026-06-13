@@ -18,7 +18,7 @@ from rag.llm import (
 from rag.query_classification import is_followup_query
 from rag.prompts import build_qa_prompt
 from rag.retrieval import (
-    create_vector_db, create_bm25, hybrid_search, 
+    create_bm25, hybrid_search, 
     rerank_results, filter_results_by_documents
 )
 
@@ -93,10 +93,8 @@ async def upload_documents(files: List[UploadFile] = File(...)):
     if not all_chunks:
         raise HTTPException(status_code=400, detail="No extractable text found.")
 
-    vector_db = create_vector_db(all_chunks, all_metadata)
     bm25 = create_bm25(all_chunks)
 
-    GLOBAL_STATE["vector_db"] = vector_db
     GLOBAL_STATE["bm25"] = bm25
     GLOBAL_STATE["chunks"] = all_chunks
     GLOBAL_STATE["metadata"] = all_metadata
@@ -109,7 +107,7 @@ async def chat(request: dict):
     query = request.get("query")
     history = request.get("history", [])
     
-    if not GLOBAL_STATE["vector_db"]:
+    if not GLOBAL_STATE["bm25"]:
         raise HTTPException(status_code=400, detail="Please upload documents first.")
         
     api_key = os.getenv("GROQ_API_KEY", "")
