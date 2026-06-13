@@ -1,0 +1,27 @@
+# Secrets & local config
+.streamlit/secrets.toml
+.env
+.env.local
+
+# Vector store
+chroma_db/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+.venv-*/
+env/
+
+# Replit
+.pythonlibs/
+.cache/
+.upm/
+.local/
+.agents/
