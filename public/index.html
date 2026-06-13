@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocMind AI - Premium Assistant</title>
+    <link rel="stylesheet" href="index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>📁 Knowledge Base</h2>
+            </div>
+            
+            <div class="upload-section">
+                <input type="file" id="file-upload" multiple accept=".pdf,.docx,.doc,.txt,.md">
+                <label for="file-upload" class="upload-label">
+                    <span class="upload-icon">☁️</span>
+                    <span>Click or Drag documents here</span>
+                    <small>Supports: PDF, DOCX, TXT, MD</small>
+                </label>
+                <button id="upload-btn" class="btn-primary" disabled>Upload & Index</button>
+            </div>
+
+            <div id="file-list" class="file-list"></div>
+
+            <div class="sidebar-header mt-4">
+                <h2>📊 Statistics</h2>
+            </div>
+            <div class="stats-card">
+                <div class="stats-grid">
+                    <div class="stat-cell">
+                        <div class="stat-value" id="doc-count">0</div>
+                        <div class="stat-label">Documents</div>
+                    </div>
+                    <div class="stat-cell">
+                        <div class="stat-value" id="chunk-count">0</div>
+                        <div class="stat-label">Chunks</div>
+                    </div>
+                </div>
+                <div class="status-indicator">
+                    <span id="status-badge" class="status-badge status-idle">○ Awaiting Documents</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="app-header">
+                <h1>🧠 DocMind AI</h1>
+                <p>Multi-Document Intelligence &nbsp;·&nbsp; Hybrid Search &nbsp;·&nbsp; Reranking</p>
+            </header>
+
+            <div class="chat-container" id="chat-container">
+                <div class="welcome-card" id="welcome-card">
+                    <div class="icon">💬</div>
+                    <h3>Your AI document assistant is ready</h3>
+                    <p>Upload documents in the sidebar, then ask anything about them.</p>
+                </div>
+                <div id="chat-messages" class="chat-messages"></div>
+            </div>
+
+            <div class="chat-input-wrapper">
+                <textarea id="chat-input" placeholder="Ask anything about your documents..." rows="1" disabled></textarea>
+                <button id="send-btn" class="send-btn" disabled>
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
