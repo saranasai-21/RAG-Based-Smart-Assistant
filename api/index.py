@@ -124,7 +124,7 @@ async def chat(request: dict):
     if is_followup_query(query):
         query = rewrite_followup_query(llm, query, history)
         
-    relevant_docs = detect_relevant_documents(llm, query, GLOBAL_STATE["document_summaries"])
+    relevant_docs = detect_relevant_documents(query, GLOBAL_STATE["document_summaries"], llm)
     queries = generate_multi_queries(llm, query)
     queries.append(query)
     
