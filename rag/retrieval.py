@@ -29,6 +29,7 @@ def hybrid_search(
     vector_db,  # unused now, kept for signature compatibility
     bm25,
     chunks: list[str],
+    metadata_list: list[dict] = None,
     k: int | None = None,
     threshold: float | None = None,
 ) -> list[Result]:
@@ -48,7 +49,7 @@ def hybrid_search(
                 {
                     "text": chunks[idx],
                     "score": score,
-                    "metadata": {},
+                    "metadata": metadata_list[idx] if metadata_list else {},
                 }
             )
 

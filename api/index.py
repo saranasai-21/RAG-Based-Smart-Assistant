@@ -130,7 +130,7 @@ async def chat(request: dict):
     
     all_results = []
     for q in set(queries):
-        res = hybrid_search(q, GLOBAL_STATE["vector_db"], GLOBAL_STATE["bm25"], GLOBAL_STATE["chunks"])
+        res = hybrid_search(q, GLOBAL_STATE["vector_db"], GLOBAL_STATE["bm25"], GLOBAL_STATE["chunks"], GLOBAL_STATE["metadata"])
         all_results.extend(res)
         
     filtered = filter_results_by_documents(all_results, relevant_docs)
