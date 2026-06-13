@@ -18,32 +18,32 @@ logger = get_logger(__name__)
 
 
 class MissingAPIKeyError(RuntimeError):
-    """Raised when no Groq API key is configured."""
+    """Raised when no API key is configured."""
 
 
 def load_llm(api_key: str | None = None):
-    """Construct a :class:`ChatGroq` client.
+    """Construct a :class:`ChatGoogleGenerativeAI` client.
 
     Args:
-        api_key: Optional explicit key; falls back to ``GROQ_API_KEY``.
+        api_key: Optional explicit key; falls back to ``GEMINI_API_KEY``.
 
     Raises:
         MissingAPIKeyError: when no key can be resolved.
     """
 
-    settings = get_settings()
-    key = api_key or settings.groq_api_key
+    import os
+    key = api_key or os.getenv("GEMINI_API_KEY")
     if not key:
         raise MissingAPIKeyError(
-            "GROQ_API_KEY is not set. Add it to your environment or .env file."
+            "GEMINI_API_KEY is not set. Add it to your environment or .env file."
         )
 
-    from langchain_groq import ChatGroq
+    from langchain_google_genai import ChatGoogleGenerativeAI
 
-    return ChatGroq(
-        model=settings.groq_model,
-        api_key=key,
-        temperature=settings.llm_temperature,
+    return ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash",
+        google_api_key=key,
+        temperature=0.0,
     )
 
 
