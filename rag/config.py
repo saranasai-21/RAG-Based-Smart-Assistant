@@ -61,8 +61,8 @@ class Settings:
     min_page_len: int = field(default_factory=lambda: _get_int("MIN_PAGE_LEN", 20))
 
     # --- Ingestion limits ---------------------------------------------------
-    max_file_size_mb: int = field(default_factory=lambda: _get_int("MAX_FILE_SIZE_MB", 25))
-    max_total_chunks: int = field(default_factory=lambda: _get_int("MAX_TOTAL_CHUNKS", 300))
+    max_file_size_mb: int = field(default_factory=lambda: _get_int("MAX_FILE_SIZE_MB", 100))
+    max_total_chunks: int = field(default_factory=lambda: _get_int("MAX_TOTAL_CHUNKS", 2000))
     max_chunks_per_page: int = field(default_factory=lambda: _get_int("MAX_CHUNKS_PER_PAGE", 40))
     summary_char_limit: int = field(default_factory=lambda: _get_int("SUMMARY_CHAR_LIMIT", 15000))
 
