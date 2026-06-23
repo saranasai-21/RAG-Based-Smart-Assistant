@@ -21,8 +21,13 @@ dependencies = [
     "fpdf2",
     "chromadb",
     "sentence-transformers",
-    "langchain-chroma"
+    "langchain-chroma",
+    "langchain-text-splitters"
 ]
+
+[tool.setuptools]
+packages = ["api", "rag"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
