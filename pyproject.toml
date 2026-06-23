@@ -1,7 +1,7 @@
 [project]
 name = "rag-based-smart-assistant"
 version = "1.0.0"
-description = "Advanced multi-document Retrieval-Augmented Generation assistant built with Streamlit."
+description = "Advanced multi-document Retrieval-Augmented Generation assistant with FastAPI backend and modern web UI."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

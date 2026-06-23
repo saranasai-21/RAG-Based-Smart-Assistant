@@ -9,7 +9,9 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import tempfile
-import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 from rag.config import get_settings
 from rag.loaders import load_document
@@ -35,7 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Vercel Serverless state (Ephemeral)
+# In-memory application state (ephemeral per container restart)
 GLOBAL_STATE = {
     "vector_db": None,
     "bm25": None,
@@ -220,7 +222,7 @@ async def generate_report(request: dict):
     pdf_bytes = pdf.output(dest='S').encode('latin-1')
     return {"pdf_base64": base64.b64encode(pdf_bytes).decode('utf-8')}
 
-# Mount static files for Render deployment (Vercel handled this via vercel.json)
+# Mount static files for serving the frontend
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
