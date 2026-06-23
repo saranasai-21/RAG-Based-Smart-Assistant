@@ -11,22 +11,23 @@ logger = get_logger(__name__)
 Result = dict[str, float | dict | str]
 
 def init_vector_db():
-    """Initialize ChromaDB with local sentence transformers."""
-    from langchain_chroma import Chroma
-    from langchain_community.embeddings import HuggingFaceEmbeddings
+    """Initialize ChromaDB with Google Generative AI embeddings."""
     import chromadb
-    
-    settings = get_settings()
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    
-    # Use ephemeral client for simple deployment, or persistent if needed
-    chroma_client = chromadb.EphemeralClient()
-    vector_db = Chroma(
-        client=chroma_client,
-        collection_name="docmind_collection",
-        embedding_function=embeddings
+    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+    from langchain_chroma import Chroma
+    import os
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY is required for embeddings.")
+        
+    emb = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+    client = chromadb.Client()
+    return Chroma(
+        client=client,
+        collection_name="docmind_rag",
+        embedding_function=emb
     )
-    return vector_db
 
 
 def create_bm25(chunks: list[str]):
