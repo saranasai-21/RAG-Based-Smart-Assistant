@@ -265,16 +265,4 @@ All settings are environment-driven via [`rag/config.py`](rag/config.py):
 
 ---
 
-## 📜 License
 
-This project is open source and available under the [MIT License](LICENSE).
-
----
-
-<div align="center">
-
-**Built with ❤️ by [Sarana Sai](https://github.com/saranasai-21)**
-
-⭐ Star this repo if you find it useful!
-
-</div>

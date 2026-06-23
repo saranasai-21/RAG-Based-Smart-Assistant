@@ -213,13 +213,21 @@ async def generate_report(request: dict):
     query = request.get("query", "General Summary")
     pdf.cell(200, 10, txt=f"Query Focus: {query}", ln=1)
     
-    summary_text = ""
-    for doc, summary in GLOBAL_STATE["document_summaries"].items():
-        summary_text += f"\nDocument: {doc}\nSummary: {summary}\n"
+    if not GLOBAL_STATE["document_summaries"]:
+        summary_text = "\nNo documents uploaded yet. Please upload documents to generate a summary report."
+    else:
+        summary_text = ""
+        for doc, summary in GLOBAL_STATE["document_summaries"].items():
+            summary_text += f"\nDocument: {doc}\nSummary: {summary}\n"
         
     pdf.multi_cell(0, 10, txt=summary_text.encode('latin-1', 'replace').decode('latin-1'))
     
-    pdf_bytes = pdf.output(dest='S').encode('latin-1')
+    pdf_bytes = pdf.output()
+    if isinstance(pdf_bytes, str):
+        pdf_bytes = pdf_bytes.encode('latin-1')
+    elif isinstance(pdf_bytes, bytearray):
+        pdf_bytes = bytes(pdf_bytes)
+        
     return {"pdf_base64": base64.b64encode(pdf_bytes).decode('utf-8')}
 
 # Mount static files for serving the frontend

@@ -497,7 +497,7 @@
                     <p class="header-subtitle">RAG Pipeline Performance Metrics</p>
                 </div>
             </div>
-            <a href="/" class="btn">← Back to Assistant</a>
+            <a href="index.html" class="btn">← Back to Assistant</a>
         </div>
 
         <!-- Stats Grid -->
@@ -712,7 +712,7 @@
             animateDonut(87.4);
 
             // Fetch health endpoint for dynamic doc count
-            fetch('/api/health')
+            fetch('api/health')
                 .then(res => res.json())
                 .then(data => {
                     animateValue(document.getElementById('val-docs'), 0, data.docs || 0, '', 1200);

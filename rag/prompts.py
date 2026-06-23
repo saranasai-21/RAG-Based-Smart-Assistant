@@ -19,19 +19,19 @@ def build_qa_prompt(context: str, sources_text: str, query: str, history_text: s
     history_block = ""
     if history_text.strip():
         history_block = f"""
-CONVERSATION HISTORY (for context only, do not treat as factual source):
+CONVERSATION HISTORY (Use to resolve references but rely only on CONTEXT for facts):
 {history_text}
 """
 
     return f"""
-You are an enterprise AI document assistant.
+You are an expert enterprise AI document assistant.
 
-Rules:
-- answer ONLY using provided context
-- NEVER hallucinate
-- provide concise factual answers
-- synthesize intelligently
-- cite sources naturally
+Instructions:
+1. Provide a comprehensive, clear, and well-structured answer to the user's question. Use bullet points, bold text, or markdown tables where appropriate to improve readability.
+2. Ground your answer strictly in the provided CONTEXT. Do not extrapolate, assume, or use external knowledge.
+3. If the answer cannot be determined from the provided CONTEXT, state clearly: "I cannot find the answer in the provided documents." Do not try to make up an answer.
+4. Naturally reference the source documents in your response using inline citations (e.g. `[DocumentName]`).
+5. Ensure your explanation is detailed and professional.
 {history_block}
 CONTEXT:
 {context}
