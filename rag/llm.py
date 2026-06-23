@@ -16,6 +16,9 @@ from rag.query_classification import is_comparison_query
 
 logger = get_logger(__name__)
 
+class MissingAPIKeyError(Exception):
+    pass
+
 
 class MultiLLMRouter:
     def __init__(self, groq_key_1=None, groq_key_2=None, gemini_key=None):
