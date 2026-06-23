@@ -219,3 +219,23 @@ async def generate_report(request: dict):
     
     pdf_bytes = pdf.output(dest='S').encode('latin-1')
     return {"pdf_base64": base64.b64encode(pdf_bytes).decode('utf-8')}
+
+# Mount static files for Render deployment (Vercel handled this via vercel.json)
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+public_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
+
+if os.path.exists(public_dir):
+    app.mount("/static", StaticFiles(directory=public_dir), name="static")
+
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(os.path.join(public_dir, "index.html"))
+
+    @app.get("/{file_path:path}")
+    async def serve_public_files(file_path: str):
+        full_path = os.path.join(public_dir, file_path)
+        if os.path.exists(full_path) and os.path.isfile(full_path):
+            return FileResponse(full_path)
+        return FileResponse(os.path.join(public_dir, "index.html"))
