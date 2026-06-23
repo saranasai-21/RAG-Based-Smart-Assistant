@@ -1,4 +1,5 @@
 {
+  "name": "rag-based-smart-assistant",
   "version": 2,
   "builds": [
     {

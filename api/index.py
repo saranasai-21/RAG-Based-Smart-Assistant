@@ -97,6 +97,17 @@ async def upload_documents(files: List[UploadFile] = File(...)):
         raise HTTPException(status_code=400, detail="No extractable text found.")
 
     bm25 = create_bm25(all_chunks)
+    
+    if not GLOBAL_STATE["vector_db"]:
+        from rag.retrieval import init_vector_db
+        GLOBAL_STATE["vector_db"] = init_vector_db()
+        
+    # We add all chunks for simplicity in this serverless state simulation
+    # Ideally, we'd only add new ones, but ephemeral client needs full state
+    try:
+        GLOBAL_STATE["vector_db"].add_texts(texts=all_chunks, metadatas=all_metadata)
+    except Exception as e:
+        logger.warning(f"Failed to add to Chroma: {e}")
 
     GLOBAL_STATE["bm25"] = bm25
     GLOBAL_STATE["chunks"] = all_chunks
@@ -130,7 +141,7 @@ async def chat(request: dict):
     
     all_results = []
     for q in set(queries):
-        res = hybrid_search(q, GLOBAL_STATE["vector_db"], GLOBAL_STATE["bm25"], GLOBAL_STATE["chunks"])
+        res = hybrid_search(q, GLOBAL_STATE["vector_db"], GLOBAL_STATE["bm25"], GLOBAL_STATE["chunks"], metadata=GLOBAL_STATE["metadata"])
         all_results.extend(res)
         
     filtered = filter_results_by_documents(all_results, relevant_docs)
@@ -145,19 +156,66 @@ async def chat(request: dict):
     ranked = rerank_results(query, unique_res)[:settings.default_top_k]
     
     context = "\n\n---\n\n".join([r["text"] for r in ranked])
-    prompt = build_qa_prompt(query, context, history)
     
-    from langchain_core.messages import HumanMessage
-    response = llm.invoke([HumanMessage(content=prompt)])
+    from rag.llm import get_recent_chat_history
+    from rag.retrieval import format_sources
+    sources_text = format_sources(ranked)
+    history_text = get_recent_chat_history(history)
     
-    sources = []
-    for r in ranked:
-        md = r.get("metadata", {})
-        s = md.get("source", "Unknown")
-        p = md.get("page", "?")
-        sources.append(f"{s} (Page {p})")
+    from rag.agent import agent_app
+    
+    async def generate():
+        import json
+        yield f"data: {json.dumps({'type': 'sources', 'data': list(set([r.get('metadata', {}).get('source', '?') for r in ranked]))})}\n\n"
         
-    return {
-        "response": response.content,
-        "sources": list(set(sources))
-    }
+        try:
+            # Stream events from LangGraph
+            for event in agent_app.stream(
+                {
+                    "query": query, 
+                    "context": context, 
+                    "sources_text": sources_text, 
+                    "history_text": history_text,
+                    "iterations": 0
+                }
+            ):
+                for node_name, state_update in event.items():
+                    # Provide thinking/agentic reasoning updates to UI
+                    yield f"data: {json.dumps({'type': 'agent_step', 'data': f'Agent executed: {node_name}'})}\n\n"
+                    
+                    if "generation" in state_update and node_name == "generate":
+                        yield f"data: {json.dumps({'type': 'token', 'data': state_update['generation']})}\n\n"
+                        
+                    if "confidence_score" in state_update:
+                        yield f"data: {json.dumps({'type': 'confidence', 'data': state_update['confidence_score']})}\n\n"
+                        
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
+            
+        yield "data: [DONE]\n\n"
+        
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.post("/api/report")
+async def generate_report(request: dict):
+    from fpdf import FPDF
+    import base64
+    
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="RAG Smart Assistant - Analytics & Report", ln=1, align='C')
+    
+    query = request.get("query", "General Summary")
+    pdf.cell(200, 10, txt=f"Query Focus: {query}", ln=1)
+    
+    summary_text = ""
+    for doc, summary in GLOBAL_STATE["document_summaries"].items():
+        summary_text += f"\nDocument: {doc}\nSummary: {summary}\n"
+        
+    pdf.multi_cell(0, 10, txt=summary_text.encode('latin-1', 'replace').decode('latin-1'))
+    
+    pdf_bytes = pdf.output(dest='S').encode('latin-1')
+    return {"pdf_base64": base64.b64encode(pdf_bytes).decode('utf-8')}

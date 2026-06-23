@@ -15,7 +15,13 @@ dependencies = [
     "python-docx",
     "rank-bm25",
     "numpy",
-    "python-dotenv"
+    "python-dotenv",
+    "langgraph",
+    "langchain-google-genai",
+    "fpdf2",
+    "chromadb",
+    "sentence-transformers",
+    "langchain-chroma"
 ]
 [tool.ruff]
 line-length = 100

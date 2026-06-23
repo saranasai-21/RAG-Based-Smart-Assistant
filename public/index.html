@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-width=1.0">
+    <title>DocMind AI - Enterprise Assistant</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --surface-color: #1e293b;
+            --surface-light: #334155;
+            --border-color: #334155;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background-color: var(--surface-color);
+            border-left: 4px solid var(--primary-color);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);
+            transform: translateX(120%);
+            animation: slideIn 0.3s forwards, fadeOut 0.5s 4s forwards;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .toast.success { border-color: var(--success-color); }
+        .toast.error { border-color: var(--error-color); }
+
+        @keyframes slideIn { to { transform: translateX(0); } }
+        @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
+
+        /* Layout */
+        .sidebar {
+            width: 340px;
+            background-color: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin: 0 0 0.5rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: rgba(15, 23, 42, 0.5);
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .file-input { display: none; }
+
+        .staged-files {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        .staged-file {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface-light);
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .staged-file button {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        .staged-file button:hover { color: var(--error-color); }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover:not(:disabled) { background-color: var(--primary-hover); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: #cbd5e1;
+        }
+        .btn-outline:hover:not(:disabled) {
+            background: var(--surface-light);
+        }
+
+        /* Chat UI */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message.user { align-self: flex-end; }
+        .message.assistant { align-self: flex-start; }
+
+        .message-bubble {
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius);
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        .message.user .message-bubble {
+            background-color: var(--primary-color);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-bubble {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 4px;
+            color: #e2e8f0;
+        }
+
+        /* Markdown Styles */
+        .message-bubble p { margin-top: 0; }
+        .message-bubble p:last-child { margin-bottom: 0; }
+        .message-bubble pre {
+            background: #0d1117 !important;
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        .message-bubble code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875em;
+        }
+        .message-bubble table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
+        }
+        .message-bubble th, .message-bubble td {
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            text-align: left;
+        }
+        .message-bubble th { background: rgba(255,255,255,0.05); }
+
+        .message-sources {
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .source-badge {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 1.5rem 2rem;
+            background-color: var(--bg-color);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 1rem;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+            align-items: center;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .send-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+            transform: scale(1.05);
+        }
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .header-actions {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="toast-container" id="toast-container"></div>
+
+    <div class="sidebar">
+        <div>
+            <h1>DocMind AI</h1>
+            <p style="color: #94a3b8; font-size: 0.875rem; margin-top: 0.5rem;">Enterprise Document Intelligence</p>
+        </div>
+
+        <div>
+            <h2>Knowledge Base</h2>
+            <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📁</div>
+                <div style="font-weight: 500;">Click or drag files here</div>
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">PDF, DOCX, TXT</div>
+                <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.docx,.txt">
+            </div>
+            
+            <div class="staged-files" id="staged-files"></div>
+
+            <button class="btn" id="upload-btn" style="margin-top: 1rem; display: none;">
+                <span id="upload-text">Upload to Knowledge Base</span>
+                <span class="loader" id="upload-loader" style="display: none;"></span>
+            </button>
+            
+            <div id="uploaded-files-list" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.875rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <h2 style="margin-bottom: 0;">Indexed Documents</h2>
+                <div id="no-docs-msg" style="color:#64748b; font-style: italic;">No documents uploaded yet.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header-actions">
+            <button class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="generateReport()">
+                📄 Export Report
+            </button>
+            <a href="/dashboard.html" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.875rem; text-decoration: none;">
+                📊 Dashboard
+            </a>
+            <button class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="clearChat()">
+                Clear Chat
+            </button>
+        </div>
+
+        <div class="chat-container" id="chat-container">
+            <div class="message assistant" id="welcome-message">
+                <div class="message-bubble">
+                    <p>Hello! I'm your Enterprise Agentic Assistant.</p>
+                    <p>Please upload some documents using the panel on the left. Once they are indexed, I can answer your questions with precise citations and confidence scoring.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <form id="chat-form" onsubmit="handleChatSubmit(event)">
+                <div class="input-wrapper">
+                    <input type="text" id="chat-input" class="chat-input" placeholder="Ask a question about your documents..." autocomplete="off">
+                    <button type="submit" class="send-btn" id="send-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- Setup marked.js options ---
+        marked.setOptions({
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            langPrefix: 'hljs language-'
+        });
+
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const uploadBtn = document.getElementById('upload-btn');
+        const uploadLoader = document.getElementById('upload-loader');
+        const uploadText = document.getElementById('upload-text');
+        const stagedFilesContainer = document.getElementById('staged-files');
+        const uploadedFilesList = document.getElementById('uploaded-files-list');
+        const noDocsMsg = document.getElementById('no-docs-msg');
+        
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatContainer = document.getElementById('chat-container');
+        const sendBtn = document.getElementById('send-btn');
+        const toastContainer = document.getElementById('toast-container');
+
+        let chatHistory = [];
+        let stagedFiles = [];
+        let isGenerating = false;
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.remove(), 4500);
+        }
+
+        // --- File Staging Logic ---
+        function handleFiles(files) {
+            Array.from(files).forEach(f => {
+                if (!stagedFiles.find(sf => sf.name === f.name)) {
+                    stagedFiles.push(f);
+                }
+            });
+            renderStagedFiles();
+        }
+
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function renderStagedFiles() {
+            stagedFilesContainer.innerHTML = '';
+            if (stagedFiles.length > 0) {
+                uploadBtn.style.display = 'flex';
+                stagedFiles.forEach((file, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'staged-file';
+                    div.innerHTML = `
+                        <span>📄 ${file.name}</span>
+                        <button onclick="removeStagedFile(${index})">✕</button>
+                    `;
+                    stagedFilesContainer.appendChild(div);
+                });
+            } else {
+                uploadBtn.style.display = 'none';
+            }
+        }
+
+        window.removeStagedFile = function(index) {
+            stagedFiles.splice(index, 1);
+            renderStagedFiles();
+        };
+
+        // --- Upload Logic ---
+        uploadBtn.addEventListener('click', async () => {
+            if (stagedFiles.length === 0) return;
+
+            // Vercel Serverless has a strict 4.5MB request payload limit.
+            // We need to enforce this locally so the user gets a clear error.
+            let totalSize = 0;
+            stagedFiles.forEach(f => totalSize += f.size);
+            if (totalSize > 4.5 * 1024 * 1024) {
+                showToast('Total file size exceeds Vercel 4.5MB limit. Please upload smaller or fewer files.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            stagedFiles.forEach(file => formData.append('files', file));
+
+            uploadBtn.disabled = true;
+            uploadText.style.display = 'none';
+            uploadLoader.style.display = 'inline-block';
+
+            try {
+                const response = await fetch('/api/upload', { method: 'POST', body: formData });
+                
+                if (response.status === 413) {
+                    showToast('Payload Too Large: Vercel limits uploads to 4.5MB.', 'error');
+                    throw new Error('413');
+                }
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast(`Successfully indexed ${stagedFiles.length} files.`, 'success');
+                    noDocsMsg.style.display = 'none';
+                    
+                    stagedFiles.forEach(file => {
+                        const fileItem = document.createElement('div');
+                        fileItem.style.display = 'flex';
+                        fileItem.style.alignItems = 'center';
+                        fileItem.style.gap = '0.5rem';
+                        fileItem.innerHTML = `<span style="color:var(--success-color)">✓</span> <span>${file.name}</span>`;
+                        uploadedFilesList.appendChild(fileItem);
+                    });
+                    
+                    stagedFiles = [];
+                    renderStagedFiles();
+                } else {
+                    showToast(data.detail || 'Upload failed', 'error');
+                }
+            } catch (err) {
+                if (err.message !== '413') {
+                    showToast('Network error during upload', 'error');
+                }
+            } finally {
+                uploadBtn.disabled = false;
+                uploadText.style.display = 'inline-block';
+                uploadLoader.style.display = 'none';
+                fileInput.value = '';
+            }
+        });
+
+        // --- Chat Logic ---
+        function clearChat() {
+            chatContainer.innerHTML = document.getElementById('welcome-message').outerHTML;
+            chatHistory = [];
+        }
+
+        function createMessageDiv(role) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            msgDiv.appendChild(bubble);
+            
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return msgDiv;
+        }
+
+        function renderMarkdown(content, targetElement) {
+            const rawHtml = marked.parse(content);
+            targetElement.innerHTML = DOMPurify.sanitize(rawHtml);
+        }
+
+        async function generateReport() {
+            showToast('Generating PDF Report...', 'info');
+            try {
+                const response = await fetch('/api/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: 'Comprehensive Document Summary' })
+                });
+                const data = await response.json();
+                if (data.pdf_base64) {
+                    const link = document.createElement('a');
+                    link.href = 'data:application/pdf;base64,' + data.pdf_base64;
+                    link.download = 'docmind_report.pdf';
+                    link.click();
+                    showToast('Report downloaded successfully!', 'success');
+                } else {
+                    showToast('Failed to generate report', 'error');
+                }
+            } catch (err) {
+                showToast('Network error generating report', 'error');
+            }
+        }
+
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            if (isGenerating) return;
+            
+            const query = chatInput.value.trim();
+            if (!query) return;
+
+            const userMsg = createMessageDiv('user');
+            userMsg.querySelector('.message-bubble').textContent = query;
+            
+            chatInput.value = '';
+            chatInput.disabled = true;
+            sendBtn.disabled = true;
+            isGenerating = true;
+
+            const assistantMsg = createMessageDiv('assistant');
+            const bubble = assistantMsg.querySelector('.message-bubble');
+            bubble.innerHTML = '<span class="loader" style="width:16px; height:16px; border-width:2px; border-top-color:var(--primary-color)"></span> Thinking...';
+            
+            // Container for agent steps
+            const stepsDiv = document.createElement('div');
+            stepsDiv.style.fontSize = '0.75rem';
+            stepsDiv.style.color = '#94a3b8';
+            stepsDiv.style.marginBottom = '0.5rem';
+            assistantMsg.insertBefore(stepsDiv, bubble);
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, history: chatHistory })
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    bubble.textContent = `Error: ${errText}`;
+                    isGenerating = false;
+                    return;
+                }
+
+                bubble.innerHTML = '';
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let fullText = "";
+                let sources = [];
+                let confidence = null;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split("\n\n");
+                    
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const dataStr = line.substring(6);
+                            if (dataStr === "[DONE]") {
+                                isGenerating = false;
+                                break;
+                            }
+                            
+                            try {
+                                const payload = JSON.parse(dataStr);
+                                if (payload.type === 'sources') {
+                                    sources = payload.data;
+                                } else if (payload.type === 'agent_step') {
+                                    stepsDiv.innerHTML += `<div>⚙️ ${payload.data}</div>`;
+                                } else if (payload.type === 'token') {
+                                    fullText += payload.data;
+                                    renderMarkdown(fullText, bubble);
+                                } else if (payload.type === 'confidence') {
+                                    confidence = payload.data;
+                                } else if (payload.type === 'error') {
+                                    showToast(payload.data, 'error');
+                                }
+                            } catch (e) {
+                                console.warn("Failed to parse SSE data", dataStr);
+                            }
+                        }
+                    }
+                }
+
+                if (sources.length > 0) {
+                    const sourcesDiv = document.createElement('div');
+                    sourcesDiv.className = 'message-sources';
+                    sources.forEach(src => {
+                        const span = document.createElement('span');
+                        span.className = 'source-badge';
+                        span.textContent = src;
+                        sourcesDiv.appendChild(span);
+                    });
+                    
+                    if (confidence !== null) {
+                        const confSpan = document.createElement('span');
+                        confSpan.className = 'source-badge';
+                        confSpan.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                        confSpan.style.color = '#10b981';
+                        confSpan.textContent = `Confidence: ${(confidence * 100).toFixed(1)}%`;
+                        sourcesDiv.appendChild(confSpan);
+                    }
+                    
+                    assistantMsg.appendChild(sourcesDiv);
+                }
+
+                chatHistory.push({ user: query, assistant: fullText });
+                if (chatHistory.length > 4) chatHistory.shift();
+
+            } catch (err) {
+                bubble.textContent = 'Network error or streaming aborted.';
+                showToast('Failed to connect to chat API', 'error');
+            } finally {
+                chatInput.disabled = false;
+                sendBtn.disabled = false;
+                isGenerating = false;
+                chatInput.focus();
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>

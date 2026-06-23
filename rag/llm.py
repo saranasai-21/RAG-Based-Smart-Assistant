@@ -17,34 +17,92 @@ from rag.query_classification import is_comparison_query
 logger = get_logger(__name__)
 
 
-class MissingAPIKeyError(RuntimeError):
-    """Raised when no Groq API key is configured."""
-
+class MultiLLMRouter:
+    def __init__(self, groq_key_1=None, groq_key_2=None, gemini_key=None):
+        settings = get_settings()
+        self.groq_1 = self._init_groq(groq_key_1 or os.getenv("GROQ_API_KEY_1") or os.getenv("GROQ_API_KEY"))
+        self.groq_2 = self._init_groq(groq_key_2 or os.getenv("GROQ_API_KEY_2"))
+        self.gemini = self._init_gemini(gemini_key or os.getenv("GEMINI_API_KEY"))
+        
+    def _init_groq(self, key):
+        if not key: return None
+        try:
+            from langchain_groq import ChatGroq
+            settings = get_settings()
+            return ChatGroq(model=settings.groq_model, api_key=key, temperature=settings.llm_temperature)
+        except Exception:
+            return None
+            
+    def _init_gemini(self, key):
+        if not key: return None
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            settings = get_settings()
+            return ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=key, temperature=settings.llm_temperature)
+        except Exception:
+            return None
+            
+    def invoke(self, messages):
+        groq_result = None
+        if self.groq_1:
+            try: groq_result = self.groq_1.invoke(messages).content
+            except Exception as e: logger.warning(f"Groq 1 failed: {e}")
+                
+        if not groq_result and self.groq_2:
+            try: groq_result = self.groq_2.invoke(messages).content
+            except Exception as e: logger.warning(f"Groq 2 failed: {e}")
+                
+        if not groq_result:
+            if self.gemini:
+                try: return self.gemini.invoke(messages)
+                except Exception: pass
+            raise RuntimeError("All LLMs failed or no keys configured.")
+            
+        if self.gemini:
+            try:
+                from langchain_core.messages import HumanMessage
+                refine_prompt = f"Please refine and polish the following text, keeping all citations intact:\n\n{groq_result}"
+                return self.gemini.invoke([HumanMessage(content=refine_prompt)])
+            except Exception as e:
+                logger.warning(f"Gemini fine-tuning failed: {e}")
+                
+        from langchain_core.messages import AIMessage
+        return AIMessage(content=groq_result)
+        
+    def stream(self, messages):
+        groq_result = None
+        if self.groq_1:
+            try: groq_result = self.groq_1.invoke(messages).content
+            except Exception as e: logger.warning(f"Groq 1 failed: {e}")
+                
+        if not groq_result and self.groq_2:
+            try: groq_result = self.groq_2.invoke(messages).content
+            except Exception as e: logger.warning(f"Groq 2 failed: {e}")
+                
+        if not groq_result:
+            if self.gemini:
+                try:
+                    for chunk in self.gemini.stream(messages): yield chunk
+                    return
+                except Exception: pass
+            raise RuntimeError("All LLMs failed or no keys configured.")
+            
+        if self.gemini:
+            try:
+                from langchain_core.messages import HumanMessage
+                refine_prompt = f"Please refine and polish the following text, keeping all citations intact:\n\n{groq_result}"
+                for chunk in self.gemini.stream([HumanMessage(content=refine_prompt)]): yield chunk
+                return
+            except Exception as e:
+                logger.warning(f"Gemini fine-tuning failed: {e}")
+                
+        from langchain_core.messages import AIMessageChunk
+        words = groq_result.split(" ")
+        for w in words: yield AIMessageChunk(content=w + " ")
 
 def load_llm(api_key: str | None = None):
-    """Construct a :class:`ChatGroq` client.
-
-    Args:
-        api_key: Optional explicit key; falls back to ``GROQ_API_KEY``.
-
-    Raises:
-        MissingAPIKeyError: when no key can be resolved.
-    """
-
-    settings = get_settings()
-    key = api_key or settings.groq_api_key
-    if not key:
-        raise MissingAPIKeyError(
-            "GROQ_API_KEY is not set. Add it to your environment or .env file."
-        )
-
-    from langchain_groq import ChatGroq
-
-    return ChatGroq(
-        model=settings.groq_model,
-        api_key=key,
-        temperature=settings.llm_temperature,
-    )
+    import os
+    return MultiLLMRouter(groq_key_1=api_key)
 
 
 def _content(response) -> str:
