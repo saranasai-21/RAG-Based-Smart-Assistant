@@ -733,20 +733,13 @@
 
         /* ===== AGENT STEPS ===== */
         .agent-steps {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
             margin-bottom: 0.4rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-        }
-        .agent-steps div {
+            min-height: 1.2rem;
             display: flex;
             align-items: center;
             gap: 0.4rem;
-            padding: 0.15rem 0;
-            animation: slideUp 0.3s ease forwards;
-            opacity: 0;
         }
     </style>
 </head>
@@ -1176,19 +1169,15 @@
             const assistantMsg = createMessageDiv('assistant');
             const bubble = assistantMsg.querySelector('.message-bubble');
 
+            // Container for agent steps
+            const stepsDiv = document.createElement('div');
+            stepsDiv.className = 'agent-steps';
+            assistantMsg.insertBefore(stepsDiv, bubble);
+
             // Warning if generation exceeds 10 seconds
             const slowResponseTimer = setTimeout(() => {
                 if (isGenerating) {
-                    const notice = document.createElement('div');
-                    notice.id = 'slow-notice';
-                    notice.className = 'slow-response-notice';
-                    notice.style.fontSize = '0.8rem';
-                    notice.style.color = 'var(--warning-color)';
-                    notice.style.marginTop = '0.5rem';
-                    notice.style.fontStyle = 'italic';
-                    notice.style.opacity = '0.8';
-                    notice.innerHTML = '⌛ Analyzing complex document sections. This is taking longer than usual, please stand by...';
-                    bubble.appendChild(notice);
+                    stepsDiv.innerHTML = '<div style="color: var(--warning-color); font-style: italic; opacity: 0.8;">⌛ Analyzing complex document sections. This is taking longer than usual, please stand by...</div>';
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
             }, 10000);
@@ -1201,11 +1190,6 @@
                     <div class="dot"></div>
                 </div>
             `;
-
-            // Container for agent steps
-            const stepsDiv = document.createElement('div');
-            stepsDiv.className = 'agent-steps';
-            assistantMsg.insertBefore(stepsDiv, bubble);
 
             try {
                 const response = await fetch('api/chat', {
@@ -1249,11 +1233,13 @@
                                 if (payload.type === 'sources') {
                                     sources = payload.data;
                                 } else if (payload.type === 'agent_step') {
-                                    stepsDiv.innerHTML += `<div>⚙️ ${payload.data}</div>`;
+                                    stepsDiv.textContent = `⚙️ ${payload.data}`;
                                     // Animate pipeline based on step
                                     if (payload.data.includes('retrieve')) animatePipeline('retrieve');
                                     if (payload.data.includes('generate')) animatePipeline('generate');
                                 } else if (payload.type === 'token') {
+                                    clearTimeout(slowResponseTimer);
+                                    stepsDiv.innerHTML = "";
                                     fullText += payload.data;
                                     renderMarkdown(fullText, bubble);
                                 } else if (payload.type === 'confidence') {
@@ -1299,8 +1285,6 @@
                 showToast('Failed to connect to chat API', 'error');
             } finally {
                 clearTimeout(slowResponseTimer);
-                const existingNotice = document.getElementById('slow-notice');
-                if (existingNotice) existingNotice.remove();
                 
                 chatInput.disabled = false;
                 sendBtn.disabled = false;
