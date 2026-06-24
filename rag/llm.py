@@ -62,14 +62,6 @@ class MultiLLMRouter:
                 except Exception: pass
             raise RuntimeError("All LLMs failed or no keys configured.")
             
-        if self.gemini:
-            try:
-                from langchain_core.messages import HumanMessage
-                refine_prompt = f"Please refine and polish the following text, keeping all citations intact:\n\n{groq_result}"
-                return self.gemini.invoke([HumanMessage(content=refine_prompt)])
-            except Exception as e:
-                logger.warning(f"Gemini fine-tuning failed: {e}")
-                
         from langchain_core.messages import AIMessage
         return AIMessage(content=groq_result)
         
@@ -91,15 +83,6 @@ class MultiLLMRouter:
                 except Exception: pass
             raise RuntimeError("All LLMs failed or no keys configured.")
             
-        if self.gemini:
-            try:
-                from langchain_core.messages import HumanMessage
-                refine_prompt = f"Please refine and polish the following text, keeping all citations intact:\n\n{groq_result}"
-                for chunk in self.gemini.stream([HumanMessage(content=refine_prompt)]): yield chunk
-                return
-            except Exception as e:
-                logger.warning(f"Gemini fine-tuning failed: {e}")
-                
         from langchain_core.messages import AIMessageChunk
         words = groq_result.split(" ")
         for w in words: yield AIMessageChunk(content=w + " ")
