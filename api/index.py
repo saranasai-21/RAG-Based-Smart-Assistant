@@ -141,20 +141,10 @@ async def chat(request: dict):
     queries = generate_multi_queries(llm, query)
     queries.append(query)
     
-    import concurrent.futures
     all_results = []
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = {
-            executor.submit(
-                hybrid_search, q, GLOBAL_STATE["vector_db"], GLOBAL_STATE["bm25"], GLOBAL_STATE["chunks"], metadata=GLOBAL_STATE["metadata"]
-            ): q for q in set(queries)
-        }
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                res = future.result()
-                all_results.extend(res)
-            except Exception as e:
-                logger.warning(f"Error in parallel retrieval for query: {futures[future]}: {e}")
+    for q in set(queries):
+        res = hybrid_search(q, GLOBAL_STATE["vector_db"], GLOBAL_STATE["bm25"], GLOBAL_STATE["chunks"], metadata=GLOBAL_STATE["metadata"])
+        all_results.extend(res)
         
     filtered = filter_results_by_documents(all_results, relevant_docs)
     
