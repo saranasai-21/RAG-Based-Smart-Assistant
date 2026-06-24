@@ -312,9 +312,8 @@
 
         /* ===== CHART SECTION ===== */
         .charts-row {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1.25rem;
+            display: flex;
+            justify-content: center;
             margin-bottom: 2rem;
         }
 
@@ -324,63 +323,11 @@
             border: 1px solid var(--glass-border);
             border-radius: var(--radius);
             padding: 1.75rem;
-        }
-
-        /* CSS Bar Chart */
-        .bar-chart {
-            display: flex;
-            align-items: flex-end;
-            gap: 10px;
-            height: 200px;
-            padding-top: 1rem;
-        }
-
-        .bar-group {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            height: 100%;
-            justify-content: flex-end;
-        }
-
-        .bar {
             width: 100%;
-            max-width: 44px;
-            border-radius: 8px 8px 4px 4px;
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            cursor: pointer;
-            min-height: 4px;
+            max-width: 480px;
         }
-        .bar:hover {
-            filter: brightness(1.2);
-            transform: scaleY(1.03);
-            transform-origin: bottom;
-        }
-        .bar .bar-tooltip {
-            position: absolute;
-            top: -28px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-        }
-        .bar:hover .bar-tooltip { opacity: 1; }
 
-        .bar-label {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            text-align: center;
-        }
+
 
         /* Donut Chart */
         .donut-wrapper {
@@ -570,13 +517,7 @@
 
         <!-- Charts Row -->
         <div class="charts-row">
-            <!-- Bar Chart - Query Volume -->
-            <div class="chart-card fade-in">
-                <div class="section-title">📈 Query Volume (Last 7 Days)</div>
-                <div class="bar-chart" id="bar-chart">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
+
 
             <!-- Donut Chart - Retrieval Accuracy -->
             <div class="chart-card fade-in">
@@ -639,51 +580,7 @@
             requestAnimationFrame(update);
         }
 
-        // ===== BAR CHART =====
-        function renderBarChart() {
-            const container = document.getElementById('bar-chart');
-            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const values = [145, 210, 187, 258, 312, 178, 295];
-            const maxVal = Math.max(...values);
 
-            const colors = [
-                'linear-gradient(to top, #3b82f6, #60a5fa)',
-                'linear-gradient(to top, #6366f1, #818cf8)',
-                'linear-gradient(to top, #8b5cf6, #a78bfa)',
-                'linear-gradient(to top, #3b82f6, #60a5fa)',
-                'linear-gradient(to top, #6366f1, #818cf8)',
-                'linear-gradient(to top, #8b5cf6, #a78bfa)',
-                'linear-gradient(to top, #3b82f6, #60a5fa)',
-            ];
-
-            days.forEach((day, i) => {
-                const group = document.createElement('div');
-                group.className = 'bar-group';
-
-                const bar = document.createElement('div');
-                bar.className = 'bar';
-                bar.style.background = colors[i];
-                bar.style.height = '0%';
-
-                const tooltip = document.createElement('div');
-                tooltip.className = 'bar-tooltip';
-                tooltip.textContent = `${values[i]} queries`;
-                bar.appendChild(tooltip);
-
-                const label = document.createElement('div');
-                label.className = 'bar-label';
-                label.textContent = day;
-
-                group.appendChild(bar);
-                group.appendChild(label);
-                container.appendChild(group);
-
-                // Animate bar height
-                setTimeout(() => {
-                    bar.style.height = (values[i] / maxVal * 100) + '%';
-                }, 300 + i * 100);
-            });
-        }
 
         // ===== DONUT CHART =====
         function animateDonut(percentage) {
@@ -707,8 +604,6 @@
                 animateValue(document.getElementById('val-resp'), 0, 1.2, 's', 1200);
             }, 400);
 
-            // Render charts
-            renderBarChart();
             animateDonut(87.4);
 
             // Fetch health endpoint for dynamic doc count

@@ -1187,6 +1187,23 @@
             const assistantMsg = createMessageDiv('assistant');
             const bubble = assistantMsg.querySelector('.message-bubble');
 
+            // Warning if generation exceeds 10 seconds
+            const slowResponseTimer = setTimeout(() => {
+                if (isGenerating) {
+                    const notice = document.createElement('div');
+                    notice.id = 'slow-notice';
+                    notice.className = 'slow-response-notice';
+                    notice.style.fontSize = '0.8rem';
+                    notice.style.color = 'var(--warning-color)';
+                    notice.style.marginTop = '0.5rem';
+                    notice.style.fontStyle = 'italic';
+                    notice.style.opacity = '0.8';
+                    notice.innerHTML = '⌛ Analyzing complex document sections. This is taking longer than usual, please stand by...';
+                    bubble.appendChild(notice);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            }, 10000);
+
             // Show typing indicator
             bubble.innerHTML = `
                 <div class="typing-indicator">
@@ -1292,6 +1309,10 @@
                 bubble.textContent = 'Network error or streaming aborted.';
                 showToast('Failed to connect to chat API', 'error');
             } finally {
+                clearTimeout(slowResponseTimer);
+                const existingNotice = document.getElementById('slow-notice');
+                if (existingNotice) existingNotice.remove();
+                
                 chatInput.disabled = false;
                 sendBtn.disabled = false;
                 isGenerating = false;
