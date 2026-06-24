@@ -1283,6 +1283,7 @@
                 showToast('Failed to connect to chat API', 'error');
             } finally {
                 clearTimeout(slowResponseTimer);
+                stepsDiv.innerHTML = "";
                 
                 chatInput.disabled = false;
                 sendBtn.disabled = false;
