@@ -707,7 +707,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ===== MOBILE RESPONSIVE ===== */
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
             .sidebar-close-btn {
                 display: flex;
             }
@@ -1619,7 +1619,7 @@
             if (!query) return;
 
             // Close sidebar on mobile
-            if (window.innerWidth <= 1024) {
+            if (window.innerWidth <= 1200) {
                 sidebar.classList.remove('open');
                 sidebarBackdrop.classList.remove('visible');
             }
