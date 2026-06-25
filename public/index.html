@@ -754,21 +754,22 @@
                 box-shadow: 4px 0 24px rgba(0,0,0,0.3);
                 width: min(var(--sidebar-width), 85vw);
                 min-width: unset;
-                background: rgba(15, 23, 42, 0.98);
-                backdrop-filter: none;
-                -webkit-backdrop-filter: none;
             }
             .sidebar.open { transform: translateX(0); }
 
             .header-actions {
                 position: static;
                 gap: 0.35rem;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
+            .header-actions::-webkit-scrollbar { display: none; }
             .header-actions .btn-outline {
                 padding: 0.4rem 0.65rem;
                 font-size: 0.75rem;
+                white-space: nowrap;
             }
-            .header-actions .btn-label { display: none; }
 
             .chat-container {
                 padding: 1.25rem 1rem 1rem 1rem;
@@ -802,7 +803,6 @@
 
         @media (max-width: 480px) {
             .feature-cards { grid-template-columns: 1fr; }
-            .header-actions .btn-outline:not(:first-child):not(:last-child) { display: none; }
             .stats-grid {
                 grid-template-columns: 1fr;
             }
