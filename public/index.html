@@ -193,7 +193,27 @@
         .hamburger svg { width: 20px; height: 20px; }
 
         /* ===== BRAND ===== */
-        .brand { display: flex; align-items: center; gap: 0.75rem; }
+        .brand { display: flex; align-items: center; gap: 0.75rem; width: 100%; }
+        .sidebar-close-btn {
+            display: none;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            margin-left: auto;
+            font-size: 0.85rem;
+        }
+        .sidebar-close-btn:hover {
+            color: var(--text-color);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
         .brand-icon {
             width: 42px; height: 42px;
             border-radius: 12px;
@@ -687,7 +707,10 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ===== MOBILE RESPONSIVE ===== */
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
+            .sidebar-close-btn {
+                display: flex;
+            }
             .top-bar {
                 display: flex;
                 align-items: center;
@@ -1076,6 +1099,7 @@
                     <h1>DocMind AI</h1>
                     <p>Enterprise Document Intelligence</p>
                 </div>
+                <button class="sidebar-close-btn" onclick="toggleSidebar()" aria-label="Close sidebar">✕</button>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 1.5rem; flex: 1;">
@@ -1595,7 +1619,7 @@
             if (!query) return;
 
             // Close sidebar on mobile
-            if (window.innerWidth <= 768) {
+            if (window.innerWidth <= 1024) {
                 sidebar.classList.remove('open');
                 sidebarBackdrop.classList.remove('visible');
             }
