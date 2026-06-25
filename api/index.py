@@ -243,10 +243,12 @@ async def generate_report(request: dict):
         for doc, summary in GLOBAL_STATE["document_summaries"].items():
             pdf.set_font("Helvetica", style="B", size=11)
             pdf.set_text_color(59, 130, 246)
-            pdf.cell(0, 10, txt=f"📄 Document: {doc}", ln=1)
+            pdf.cell(0, 10, txt=f"Document: {doc}", ln=1)
             
-            # Clean markdown bold tags
+            # Clean markdown bold tags and remove emojis
+            import re
             clean_summary = summary.replace("**", "")
+            clean_summary = re.sub(r'[^\x00-\x7F]+', '', clean_summary)
             
             pdf.set_font("Helvetica", size=9)
             pdf.set_text_color(30, 41, 59)

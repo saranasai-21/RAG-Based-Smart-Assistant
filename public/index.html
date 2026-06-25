@@ -1041,6 +1041,13 @@
                         fileItem.className = 'indexed-doc-item';
                         fileItem.innerHTML = `<span class="check">✓</span> <span>${file.name}</span>`;
                         uploadedFilesList.appendChild(fileItem);
+                        
+                        // Save to session storage
+                        const savedDocs = JSON.parse(sessionStorage.getItem('indexedDocs') || '[]');
+                        if (!savedDocs.includes(file.name)) {
+                            savedDocs.push(file.name);
+                            sessionStorage.setItem('indexedDocs', JSON.stringify(savedDocs));
+                        }
                     });
 
                     stagedFiles = [];
@@ -1073,6 +1080,8 @@
             sendBtn.disabled = false;
             chatInput.value = '';
             resetPipeline();
+            sessionStorage.removeItem('chatMessages');
+            sessionStorage.removeItem('chatHistory');
         }
 
         function createWelcomeScreen() {
@@ -1277,6 +1286,7 @@
 
                 chatHistory.push({ user: query, assistant: fullText });
                 if (chatHistory.length > 4) chatHistory.shift();
+                saveChatToSession();
 
             } catch (err) {
                 bubble.textContent = 'Network error or streaming aborted.';
@@ -1293,6 +1303,55 @@
                 setTimeout(() => resetPipeline(), 2000);
             }
         }
+
+        // --- Session Storage State Persistence ---
+        function saveChatToSession() {
+            const messages = Array.from(chatContainer.querySelectorAll('.message')).map(msg => {
+                return {
+                    role: msg.classList.contains('user') ? 'user' : 'assistant',
+                    content: msg.querySelector('.message-bubble').innerHTML,
+                    sourcesHtml: msg.querySelector('.message-sources') ? msg.querySelector('.message-sources').innerHTML : null
+                };
+            });
+            sessionStorage.setItem('chatMessages', JSON.stringify(messages));
+            sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedDocs = JSON.parse(sessionStorage.getItem('indexedDocs') || '[]');
+            if (savedDocs.length > 0) {
+                noDocsMsg.style.display = 'none';
+                savedDocs.forEach(name => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'indexed-doc-item';
+                    fileItem.innerHTML = `<span class="check">✓</span> <span>${name}</span>`;
+                    uploadedFilesList.appendChild(fileItem);
+                });
+            }
+
+            const savedChat = JSON.parse(sessionStorage.getItem('chatMessages') || '[]');
+            if (savedChat.length > 0) {
+                const ws = document.getElementById('welcome-screen');
+                if (ws) ws.remove();
+                savedChat.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `message ${msg.role}`;
+                    const bubble = document.createElement('div');
+                    bubble.className = 'message-bubble';
+                    bubble.innerHTML = msg.content;
+                    msgDiv.appendChild(bubble);
+                    if (msg.sourcesHtml) {
+                        const sourcesDiv = document.createElement('div');
+                        sourcesDiv.className = 'message-sources';
+                        sourcesDiv.innerHTML = msg.sourcesHtml;
+                        msgDiv.appendChild(sourcesDiv);
+                    }
+                    chatContainer.appendChild(msgDiv);
+                });
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            chatHistory = JSON.parse(sessionStorage.getItem('chatHistory') || '[]');
+        });
     </script>
 </body>
 </html>
