@@ -40,7 +40,18 @@ def generate(state: AgentState):
     except Exception as e:
         generation = f"Error during generation: {e}"
         
-    return {"generation": generation, "confidence_score": 0.85}
+    # Calculate confidence based on context availability
+    context_len = len(state.get("context", ""))
+    if context_len > 2000:
+        confidence = 0.92
+    elif context_len > 500:
+        confidence = 0.78
+    elif context_len > 100:
+        confidence = 0.55
+    else:
+        confidence = 0.3
+        
+    return {"generation": generation, "confidence_score": confidence}
 
 def grade_hallucination(state: AgentState):
     """Check if the generation is grounded in the document."""

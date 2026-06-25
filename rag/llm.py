@@ -172,6 +172,10 @@ def rewrite_followup_query(llm, query: str, chat_history: list[dict]) -> str:
 def detect_relevant_documents(query: str, document_summaries: Mapping[str, str], llm) -> list[str]:
     """Return the filenames the LLM judges relevant to ``query``."""
 
+    # If only one document is uploaded, it's always relevant
+    if len(document_summaries) <= 1:
+        return list(document_summaries.keys())
+
     docs_text = ""
     for idx, (doc, summary) in enumerate(document_summaries.items(), start=1):
         docs_text += f"""
@@ -187,7 +191,27 @@ SUMMARY:
     prompt = build_relevant_docs_prompt(query, docs_text)
     try:
         response = _content(llm.invoke(prompt))
-        return [name for name in document_summaries.keys() if name.lower() in response.lower()]
+        response_lower = response.lower()
+        
+        # Try exact filename matching first
+        matched = [name for name in document_summaries.keys() if name.lower() in response_lower]
+        
+        # If no exact match, try fuzzy matching (match base name without extension)
+        if not matched:
+            import os
+            for name in document_summaries.keys():
+                base = os.path.splitext(name)[0].lower()
+                # Check if significant words from the filename appear in the response
+                words = [w for w in base.replace("_", " ").replace("-", " ").split() if len(w) > 2]
+                if words and sum(1 for w in words if w in response_lower) >= len(words) * 0.5:
+                    matched.append(name)
+        
+        # Fallback: if still no match, return all documents
+        if not matched:
+            logger.warning("Document detection matched no documents — returning all.")
+            return list(document_summaries.keys())
+        
+        return matched
     except Exception as exc:  # pragma: no cover - network/LLM failure
         logger.warning("Relevant-doc detection failed: %s", exc)
         return list(document_summaries.keys())

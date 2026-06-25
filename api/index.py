@@ -156,6 +156,11 @@ async def chat(request: dict):
         
     filtered = filter_results_by_documents(all_results, relevant_docs)
     
+    # Fallback: if filtering removed all results, use unfiltered results
+    if not filtered and all_results:
+        logger.warning("Document filtering removed all results — using unfiltered results.")
+        filtered = all_results
+    
     seen = set()
     unique_res = []
     for r in filtered:
