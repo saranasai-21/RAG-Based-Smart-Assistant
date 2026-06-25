@@ -31,6 +31,10 @@ DocMind AI is a full-stack **RAG-based smart assistant** that lets you upload do
 
 👉 **[Try it on Hugging Face Spaces](https://huggingface.co/spaces/saranasai/Rag-Smart-Assistant)**
 
+<img width="1918" height="811" alt="image" src="https://github.com/user-attachments/assets/355d5e77-9e3c-4244-a947-a7dc3e6b0d1a" />
+
+<img width="1530" height="696" alt="image" src="https://github.com/user-attachments/assets/0d742c1a-7cda-4ad4-947b-f952f08edaff" />
+
 ---
 
 ## ✨ Key Features
