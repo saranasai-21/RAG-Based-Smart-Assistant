@@ -1325,7 +1325,7 @@
                 .then(data => {
                     const serverDocs = data.file_names || [];
                     if (serverDocs.length > 0) {
-                        // Clear any stale localStorage and existing DOM items
+                        // Clear any existing DOM items and show server docs
                         document.querySelectorAll('.indexed-doc-item').forEach(el => el.remove());
                         noDocsMsg.style.display = 'none';
                         serverDocs.forEach(name => {
@@ -1336,21 +1336,14 @@
                         });
                         localStorage.setItem('indexedDocs', JSON.stringify(serverDocs));
                     } else {
-                        // Fall back to localStorage
-                        const savedDocs = JSON.parse(localStorage.getItem('indexedDocs') || '[]');
-                        if (savedDocs.length > 0) {
-                            noDocsMsg.style.display = 'none';
-                            savedDocs.forEach(name => {
-                                const fileItem = document.createElement('div');
-                                fileItem.className = 'indexed-doc-item';
-                                fileItem.innerHTML = `<span class="check">\u2713</span> <span>${name}</span>`;
-                                uploadedFilesList.appendChild(fileItem);
-                            });
-                        }
+                        // Server has no docs (container restarted) — clear stale localStorage
+                        localStorage.removeItem('indexedDocs');
+                        localStorage.removeItem('chatMessages');
+                        localStorage.removeItem('chatHistory');
                     }
                 })
                 .catch(() => {
-                    // Network error - fall back to localStorage
+                    // Network error only — fall back to localStorage
                     const savedDocs = JSON.parse(localStorage.getItem('indexedDocs') || '[]');
                     if (savedDocs.length > 0) {
                         noDocsMsg.style.display = 'none';
