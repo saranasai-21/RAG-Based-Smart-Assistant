@@ -47,6 +47,12 @@ class MultiLLMRouter:
             return None
             
     def invoke(self, messages):
+        # Try Gemini first (faster + smarter)
+        if self.gemini:
+            try: return self.gemini.invoke(messages)
+            except Exception as e: logger.warning(f"Gemini failed: {e}")
+        
+        # Fallback to Groq
         groq_result = None
         if self.groq_1:
             try: groq_result = self.groq_1.invoke(messages).content
@@ -57,15 +63,20 @@ class MultiLLMRouter:
             except Exception as e: logger.warning(f"Groq 2 failed: {e}")
                 
         if not groq_result:
-            if self.gemini:
-                try: return self.gemini.invoke(messages)
-                except Exception: pass
             raise RuntimeError("All LLMs failed or no keys configured.")
             
         from langchain_core.messages import AIMessage
         return AIMessage(content=groq_result)
         
     def stream(self, messages):
+        # Try Gemini first (faster + smarter)
+        if self.gemini:
+            try:
+                for chunk in self.gemini.stream(messages): yield chunk
+                return
+            except Exception as e: logger.warning(f"Gemini stream failed: {e}")
+        
+        # Fallback to Groq
         groq_result = None
         if self.groq_1:
             try: groq_result = self.groq_1.invoke(messages).content
@@ -76,11 +87,6 @@ class MultiLLMRouter:
             except Exception as e: logger.warning(f"Groq 2 failed: {e}")
                 
         if not groq_result:
-            if self.gemini:
-                try:
-                    for chunk in self.gemini.stream(messages): yield chunk
-                    return
-                except Exception: pass
             raise RuntimeError("All LLMs failed or no keys configured.")
             
         from langchain_core.messages import AIMessageChunk
