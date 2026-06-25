@@ -257,6 +257,31 @@ async def generate_report(request: dict):
             pdf.multi_cell(0, 5.5, txt=clean_summary_encoded)
             pdf.ln(6)
             
+    history = request.get("history", [])
+    if history:
+        pdf.add_page()
+        pdf.set_font("Helvetica", style="B", size=12)
+        pdf.set_text_color(30, 41, 59)
+        pdf.cell(0, 10, txt="Chat History", ln=1)
+        pdf.ln(2)
+        
+        for msg in history:
+            # User Question
+            pdf.set_font("Helvetica", style="B", size=10)
+            pdf.set_text_color(59, 130, 246)
+            user_text = msg.get("user", "")
+            user_text = re.sub(r'[^\x00-\x7F]+', '', user_text).encode('latin-1', 'replace').decode('latin-1')
+            pdf.multi_cell(0, 6, txt=f"Q: {user_text}")
+            
+            # Assistant Answer
+            pdf.set_font("Helvetica", size=9)
+            pdf.set_text_color(71, 85, 105)
+            asst_text = msg.get("assistant", "")
+            asst_text = asst_text.replace("**", "")
+            asst_text = re.sub(r'[^\x00-\x7F]+', '', asst_text).encode('latin-1', 'replace').decode('latin-1')
+            pdf.multi_cell(0, 5.5, txt=f"A: {asst_text}")
+            pdf.ln(4)
+
     pdf_bytes = pdf.output()
     if isinstance(pdf_bytes, str):
         pdf_bytes = pdf_bytes.encode('latin-1')
