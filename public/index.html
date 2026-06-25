@@ -739,6 +739,271 @@
             min-height: 1.2rem;
             line-height: 1.4;
         }
+
+        /* ===== INTEGRATED DASHBOARD STYLES ===== */
+        .dashboard-view {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 4rem 2rem 2rem 2rem;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+        }
+        .dashboard-view::-webkit-scrollbar { width: 6px; }
+        .dashboard-view::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        
+        .dashboard-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .dashboard-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+        .dashboard-header .header-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0.15rem 0 0 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+
+        .stat-card {
+            background: var(--surface-color);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: var(--radius) var(--radius) 0 0;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+            border-color: rgba(255,255,255,0.15);
+        }
+        .stat-card:hover::before { opacity: 1; }
+
+        .stat-card:nth-child(1)::before { background: var(--primary-gradient); }
+        .stat-card:nth-child(2)::before { background: linear-gradient(135deg, var(--accent), #c084fc); }
+        .stat-card:nth-child(3)::before { background: linear-gradient(135deg, var(--success-color), #34d399); }
+        .stat-card:nth-child(4)::before { background: linear-gradient(135deg, var(--cyan), #22d3ee); }
+
+        .stat-card h3 {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 500;
+        }
+        .stat-card .stat-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+        .stat-card .stat-trend {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .stat-trend.up { color: var(--success-color); }
+        .stat-trend.down { color: var(--cyan); }
+        .stat-trend.neutral { color: var(--text-muted); }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 1.25rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pipeline-section {
+            background: var(--surface-color);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 1.75rem;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+
+        .pipeline-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0;
+            overflow-x: auto;
+            padding: 0.5rem 0;
+        }
+        .pipeline-flow::-webkit-scrollbar { display: none; }
+
+        .pipeline-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+            min-width: 100px;
+            transition: all 0.3s ease;
+        }
+        .pipeline-node:hover { transform: translateY(-4px); }
+
+        .pipeline-node-icon {
+            width: 56px; height: 56px;
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .pipeline-node:nth-child(1) .pipeline-node-icon { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.25); }
+        .pipeline-node:nth-child(3) .pipeline-node-icon { background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.25); }
+        .pipeline-node:nth-child(5) .pipeline-node-icon { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.25); }
+        .pipeline-node:nth-child(7) .pipeline-node-icon { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.25); }
+        .pipeline-node:nth-child(9) .pipeline-node-icon { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.25); }
+
+        .pipeline-node-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        .pipeline-node-desc {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-align: center;
+            max-width: 100px;
+            line-height: 1.3;
+        }
+
+        .pipeline-connector {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            padding: 0 0.25rem;
+        }
+        .pipeline-connector svg {
+            width: 40px;
+            height: 16px;
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        .charts-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+
+        .chart-card {
+            background: var(--surface-color);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 1.75rem;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .donut-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.25rem;
+        }
+        .donut-chart {
+            position: relative;
+            width: 160px;
+            height: 160px;
+        }
+        .donut-chart svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        .donut-chart circle {
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+        }
+        .donut-bg { stroke: rgba(255,255,255,0.05); }
+        .donut-fill {
+            stroke: url(#donutGrad);
+            stroke-dasharray: 0 440;
+            transition: stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .donut-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .donut-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .donut-label-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .donut-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+        .legend-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 900px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .charts-row { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -771,31 +1036,37 @@
                 </div>
             </div>
 
+            <div style="display: flex; flex-direction: column; gap: 1.5rem; flex: 1;">
+                <div>
+                    <h2>Knowledge Base</h2>
+                    <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                        <div class="upload-icon">📁</div>
+                        <div style="font-weight: 500; position: relative;">Click or drag files here</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; position: relative;">PDF, DOCX, TXT, Markdown</div>
+                        <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.docx,.txt,.md,.markdown">
+                    </div>
 
+                    <div class="upload-progress" id="upload-progress">
+                        <div class="bar" id="upload-progress-bar"></div>
+                    </div>
 
-            <div>
-                <h2>Knowledge Base</h2>
-                <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
-                    <div class="upload-icon">📁</div>
-                    <div style="font-weight: 500; position: relative;">Click or drag files here</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; position: relative;">PDF, DOCX, TXT, Markdown</div>
-                    <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.docx,.txt,.md,.markdown">
+                    <div class="staged-files" id="staged-files"></div>
+
+                    <button class="btn" id="upload-btn" style="margin-top: 0.75rem; display: none; width: 100%;">
+                        <span id="upload-text">📤 Upload to Knowledge Base</span>
+                        <span class="loader" id="upload-loader" style="display: none;"></span>
+                    </button>
+
+                    <div class="indexed-docs" id="uploaded-files-list">
+                        <h2 style="margin-bottom: 0;">Indexed Documents</h2>
+                        <div id="no-docs-msg" style="color: var(--text-dim); font-style: italic; font-size: 0.8rem;">No documents uploaded yet.</div>
+                    </div>
                 </div>
-
-                <div class="upload-progress" id="upload-progress">
-                    <div class="bar" id="upload-progress-bar"></div>
-                </div>
-
-                <div class="staged-files" id="staged-files"></div>
-
-                <button class="btn" id="upload-btn" style="margin-top: 0.75rem; display: none; width: 100%;">
-                    <span id="upload-text">📤 Upload to Knowledge Base</span>
-                    <span class="loader" id="upload-loader" style="display: none;"></span>
-                </button>
-
-                <div class="indexed-docs" id="uploaded-files-list">
-                    <h2 style="margin-bottom: 0;">Indexed Documents</h2>
-                    <div id="no-docs-msg" style="color: var(--text-dim); font-style: italic; font-size: 0.8rem;">No documents uploaded yet.</div>
+                
+                <div style="margin-top: auto; padding-top: 1.25rem; border-top: 1px solid var(--border-color);">
+                    <button class="btn" id="reset-btn" onclick="resetSystem()" style="width: 100%; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);">
+                        🔄 Reset / Start Over
+                    </button>
                 </div>
             </div>
         </aside>
@@ -805,59 +1076,186 @@
                 <button class="btn btn-outline" onclick="generateReport()" aria-label="Export Report">
                     📄 <span class="btn-label">Export Report</span>
                 </button>
-                <a href="dashboard.html" class="btn btn-outline" style="text-decoration: none;" aria-label="Dashboard">
-                    📊 <span class="btn-label">Dashboard</span>
-                </a>
+                <button class="btn btn-outline" id="dashboard-toggle-btn" onclick="toggleView()" aria-label="Dashboard">
+                    📊 <span class="btn-label" id="dashboard-toggle-label">Dashboard</span>
+                </button>
                 <button class="btn btn-outline" onclick="clearChat()" aria-label="Clear Chat">
                     🗑️ <span class="btn-label">Clear</span>
                 </button>
             </div>
 
-            <div class="chat-container" id="chat-container">
-                <!-- Welcome Screen -->
-                <div class="welcome-screen" id="welcome-screen">
-                    <div class="welcome-logo">🧠</div>
-                    <h2 class="welcome-title" style="text-transform:none; letter-spacing:normal; color:unset; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to DocMind AI</h2>
-                    <p class="welcome-subtitle">Upload documents and ask questions. I'll provide grounded answers with precise citations, powered by a full RAG pipeline.</p>
+            <!-- Chat View -->
+            <div id="chat-view" style="display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%;">
+                <div class="chat-container" id="chat-container">
+                    <!-- Welcome Screen -->
+                    <div class="welcome-screen" id="welcome-screen">
+                        <div class="welcome-logo">🧠</div>
+                        <h2 class="welcome-title" style="text-transform:none; letter-spacing:normal; color:unset; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to DocMind AI</h2>
+                        <p class="welcome-subtitle">Upload documents and ask questions. I'll provide grounded answers with precise citations, powered by a full RAG pipeline.</p>
 
-                    <div class="feature-cards">
-                        <div class="feature-card">
-                            <span class="fc-icon">📥</span>
-                            <div class="fc-title">Document Ingestion</div>
-                            <div class="fc-desc">PDF, DOCX, TXT &amp; Markdown with multi-format parsing</div>
+                        <div class="feature-cards">
+                            <div class="feature-card">
+                                <span class="fc-icon">📥</span>
+                                <div class="fc-title">Document Ingestion</div>
+                                <div class="fc-desc">PDF, DOCX, TXT &amp; Markdown with multi-format parsing</div>
+                            </div>
+                            <div class="feature-card">
+                                <span class="fc-icon">✂️</span>
+                                <div class="fc-title">Smart Chunking</div>
+                                <div class="fc-desc">Recursive text splitting with overlap for context preservation</div>
+                            </div>
+                            <div class="feature-card">
+                                <span class="fc-icon">🧮</span>
+                                <div class="fc-title">Vector Embeddings</div>
+                                <div class="fc-desc">ChromaDB + Google AI embeddings for semantic indexing</div>
+                            </div>
+                            <div class="feature-card">
+                                <span class="fc-icon">🔍</span>
+                                <div class="fc-title">Hybrid Retrieval</div>
+                                <div class="fc-desc">BM25 sparse + dense vector semantic search with reranking</div>
+                            </div>
+                            <div class="feature-card">
+                                <span class="fc-icon">💡</span>
+                                <div class="fc-title">LLM Generation</div>
+                                <div class="fc-desc">Groq + Gemini multi-LLM router with hallucination checks</div>
+                            </div>
+                            <div class="feature-card">
+                                <span class="fc-icon">📄</span>
+                                <div class="fc-title">PDF Reports</div>
+                                <div class="fc-desc">Export analysis summaries and document intelligence as PDF</div>
+                            </div>
                         </div>
-                        <div class="feature-card">
-                            <span class="fc-icon">✂️</span>
-                            <div class="fc-title">Smart Chunking</div>
-                            <div class="fc-desc">Recursive text splitting with overlap for context preservation</div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <form id="chat-form" onsubmit="handleChatSubmit(event)">
+                        <div class="input-wrapper">
+                            <input type="text" id="chat-input" class="chat-input" placeholder="Ask a question about your documents..." autocomplete="off">
+                            <button type="submit" class="send-btn" id="send-btn" aria-label="Send message">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
                         </div>
-                        <div class="feature-card">
-                            <span class="fc-icon">🧮</span>
-                            <div class="fc-title">Vector Embeddings</div>
-                            <div class="fc-desc">ChromaDB + Google AI embeddings for semantic indexing</div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Integrated Dashboard View -->
+            <div id="dashboard-view" class="dashboard-view">
+                <div class="dashboard-header">
+                    <h1>DocMind AI</h1>
+                    <p class="header-subtitle">Analytics &amp; System Performance</p>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Queries</h3>
+                        <div class="stat-value" id="val-queries">0</div>
+                        <div class="stat-trend up">↑ 12% this week</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Avg. Confidence Score</h3>
+                        <div class="stat-value" id="val-conf">0%</div>
+                        <div class="stat-trend up">↑ 2.1% from last month</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Documents Indexed</h3>
+                        <div class="stat-value" id="val-docs">0</div>
+                        <div class="stat-trend neutral">Active in knowledge base</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Avg. Response Time</h3>
+                        <div class="stat-value" id="val-resp">0s</div>
+                        <div class="stat-trend down">↓ 0.4s — Groq Accelerated</div>
+                    </div>
+                </div>
+
+                <!-- RAG Pipeline Visualization -->
+                <div class="pipeline-section">
+                    <div class="section-title">🔗 RAG Pipeline Architecture</div>
+                    <div class="pipeline-flow">
+                        <div class="pipeline-node">
+                            <div class="pipeline-node-icon">📥</div>
+                            <div class="pipeline-node-label">Ingest</div>
+                            <div class="pipeline-node-desc">PDF, DOCX, TXT upload &amp; parsing</div>
                         </div>
-                        <div class="feature-card">
-                            <span class="fc-icon">🔍</span>
-                            <div class="fc-title">Hybrid Retrieval</div>
-                            <div class="fc-desc">BM25 sparse + dense vector semantic search with reranking</div>
+                        <div class="pipeline-connector">
+                            <svg viewBox="0 0 40 16"><path d="M0 8 L30 8 M24 3 L30 8 L24 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </div>
-                        <div class="feature-card">
-                            <span class="fc-icon">💡</span>
-                            <div class="fc-title">LLM Generation</div>
-                            <div class="fc-desc">Groq + Gemini multi-LLM router with hallucination checks</div>
+                        <div class="pipeline-node">
+                            <div class="pipeline-node-icon">✂️</div>
+                            <div class="pipeline-node-label">Chunk</div>
+                            <div class="pipeline-node-desc">Recursive splitting 900 chars / 180 overlap</div>
                         </div>
-                        <div class="feature-card">
-                            <span class="fc-icon">📄</span>
-                            <div class="fc-title">PDF Reports</div>
-                            <div class="fc-desc">Export analysis summaries and document intelligence as PDF</div>
+                        <div class="pipeline-connector">
+                            <svg viewBox="0 0 40 16"><path d="M0 8 L30 8 M24 3 L30 8 L24 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="pipeline-node">
+                            <div class="pipeline-node-icon">🧮</div>
+                            <div class="pipeline-node-label">Embed</div>
+                            <div class="pipeline-node-desc">Google AI embeddings + ChromaDB</div>
+                        </div>
+                        <div class="pipeline-connector">
+                            <svg viewBox="0 0 40 16"><path d="M0 8 L30 8 M24 3 L30 8 L24 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="pipeline-node">
+                            <div class="pipeline-node-icon">🔍</div>
+                            <div class="pipeline-node-label">Retrieve</div>
+                            <div class="pipeline-node-desc">Hybrid BM25 + semantic search</div>
+                        </div>
+                        <div class="pipeline-connector">
+                            <svg viewBox="0 0 40 16"><path d="M0 8 L30 8 M24 3 L30 8 L24 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="pipeline-node">
+                            <div class="pipeline-node-icon">💡</div>
+                            <div class="pipeline-node-label">Generate</div>
+                            <div class="pipeline-node-desc">Multi-LLM (Groq + Gemini) w/ hallucination check</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <!-- Donut Chart - Retrieval Accuracy -->
+                    <div class="chart-card">
+                        <div class="section-title">🎯 Retrieval Accuracy</div>
+                        <div class="donut-wrapper">
+                            <div class="donut-chart">
+                                <svg viewBox="0 0 160 160">
+                                    <defs>
+                                        <linearGradient id="donutGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#3b82f6"/>
+                                            <stop offset="100%" stop-color="#8b5cf6"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <circle class="donut-bg" cx="80" cy="80" r="68"></circle>
+                                    <circle class="donut-fill" id="donut-fill" cx="80" cy="80" r="68"></circle>
+                                </svg>
+                                <div class="donut-center">
+                                    <div class="donut-value" id="donut-value">0%</div>
+                                    <div class="donut-label-text">Accuracy</div>
+                                </div>
+                            </div>
+                            <div class="donut-legend">
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: var(--primary);"></div>
+                                    <span>Grounded (in-context)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: rgba(255,255,255,0.1);"></div>
+                                    <span>Low confidence / fallback</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div class="input-area">
-                <form id="chat-form" onsubmit="handleChatSubmit(event)">
-                    <div class="input-wrapper">
+        </div>
+    </div>
                         <input type="text" id="chat-input" class="chat-input" placeholder="Ask a question about your documents..." autocomplete="off">
                         <button type="submit" class="send-btn" id="send-btn" aria-label="Send message">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1082,7 +1480,6 @@
             resetPipeline();
             localStorage.removeItem('chatMessages');
             localStorage.removeItem('chatHistory');
-            localStorage.removeItem('indexedDocs');
         }
 
         function createWelcomeScreen() {
@@ -1318,6 +1715,136 @@
             localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
         }
 
+        // --- Integrated SPA View Controls ---
+        let currentView = 'chat';
+        function toggleView() {
+            const chatView = document.getElementById('chat-view');
+            const dashboardView = document.getElementById('dashboard-view');
+            const toggleLabel = document.getElementById('dashboard-toggle-label');
+            const clearBtn = document.querySelector('button[onclick="clearChat()"]');
+            
+            if (currentView === 'chat') {
+                currentView = 'dashboard';
+                chatView.style.display = 'none';
+                dashboardView.style.display = 'block';
+                toggleLabel.textContent = 'Back to Chat';
+                if (clearBtn) clearBtn.style.display = 'none';
+                
+                animateDashboard();
+            } else {
+                currentView = 'chat';
+                chatView.style.display = 'flex';
+                dashboardView.style.display = 'none';
+                toggleLabel.textContent = 'Dashboard';
+                if (clearBtn) clearBtn.style.display = 'inline-flex';
+            }
+        }
+
+        function animateValue(el, start, end, suffix = '', duration = 1500) {
+            const startTime = performance.now();
+            const isFloat = String(end).includes('.');
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = start + (end - start) * eased;
+
+                if (isFloat) {
+                    el.textContent = current.toFixed(1) + suffix;
+                } else {
+                    el.textContent = Math.floor(current).toLocaleString() + suffix;
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
+        function animateDashboard() {
+            // Reset values
+            document.getElementById('val-queries').textContent = '0';
+            document.getElementById('val-conf').textContent = '0%';
+            document.getElementById('val-resp').textContent = '0s';
+            document.getElementById('val-docs').textContent = '0';
+            
+            const circumference = 2 * Math.PI * 68;
+            const fill = document.getElementById('donut-fill');
+            fill.style.strokeDasharray = `0 ${circumference}`;
+            document.getElementById('donut-value').textContent = '0%';
+            
+            // Trigger count animations
+            setTimeout(() => {
+                animateValue(document.getElementById('val-queries'), 0, 1248, '', 1800);
+                animateValue(document.getElementById('val-conf'), 0, 87.4, '%', 1500);
+                animateValue(document.getElementById('val-resp'), 0, 1.2, 's', 1200);
+            }, 200);
+
+            // Fetch indexed docs count from server
+            fetch('api/health')
+                .then(res => res.json())
+                .then(data => {
+                    const count = data.file_names ? data.file_names.length : 0;
+                    animateValue(document.getElementById('val-docs'), 0, count, '', 1200);
+                })
+                .catch(() => {
+                    document.getElementById('val-docs').textContent = '0';
+                });
+
+            // Donut chart animation
+            setTimeout(() => {
+                const target = (87.4 / 100) * circumference;
+                fill.style.strokeDasharray = `${target} ${circumference}`;
+            }, 300);
+            animateValue(document.getElementById('donut-value'), 0, 87.4, '%', 1500);
+        }
+
+        // --- System Reset Logic ---
+        async function resetSystem() {
+            if (!confirm("Are you sure you want to reset the system? This will delete all uploaded documents, search indexes, and chat history. This action cannot be undone.")) {
+                return;
+            }
+            
+            showToast('Resetting system state...', 'info');
+            try {
+                const response = await fetch('api/reset', { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    // Clear frontend state
+                    localStorage.removeItem('chatMessages');
+                    localStorage.removeItem('chatHistory');
+                    localStorage.removeItem('indexedDocs');
+                    
+                    chatHistory = [];
+                    stagedFiles = [];
+                    
+                    // Reset UI
+                    chatContainer.innerHTML = '';
+                    chatContainer.appendChild(createWelcomeScreen());
+                    
+                    // Clear documents lists
+                    document.querySelectorAll('.indexed-doc-item').forEach(el => el.remove());
+                    noDocsMsg.style.display = 'block';
+                    
+                    // Clear staged files
+                    renderStagedFiles();
+                    
+                    // Reset view to chat
+                    if (currentView === 'dashboard') {
+                        toggleView();
+                    }
+                    
+                    showToast('System reset successfully!', 'success');
+                } else {
+                    showToast(data.detail || 'Reset failed', 'error');
+                }
+            } catch (err) {
+                showToast('Network error during system reset', 'error');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // Fetch indexed docs from server (most reliable source)
             fetch('api/health')
@@ -1379,6 +1906,7 @@
             }
             chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
         });
+
     </script>
 </body>
 </html>

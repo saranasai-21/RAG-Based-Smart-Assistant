@@ -220,6 +220,30 @@ async def chat(request: dict):
     return StreamingResponse(generate(), media_type="text/event-stream")
 
 
+@app.post("/api/reset")
+async def reset_state():
+    GLOBAL_STATE["vector_db"] = None
+    GLOBAL_STATE["bm25"] = None
+    GLOBAL_STATE["chunks"] = []
+    GLOBAL_STATE["metadata"] = []
+    GLOBAL_STATE["document_summaries"] = {}
+    GLOBAL_STATE["uploaded_hashes"] = set()
+    GLOBAL_STATE["uploaded_file_names"] = []
+    GLOBAL_STATE["chat_history"] = []
+    if "_pending_query" in GLOBAL_STATE:
+        GLOBAL_STATE.pop("_pending_query")
+    
+    import shutil
+    persist_dir = os.environ.get("CHROMA_PERSIST_DIR", "/tmp/chroma_db")
+    if os.path.exists(persist_dir):
+        try:
+            shutil.rmtree(persist_dir)
+        except Exception as e:
+            logger.warning(f"Failed to delete chroma db directory: {e}")
+            
+    return {"status": "success", "message": "State reset successfully"}
+
+
 @app.post("/api/report")
 async def generate_report(request: dict):
     from fpdf import FPDF
@@ -230,7 +254,7 @@ async def generate_report(request: dict):
             # Brand Header
             self.set_font("Helvetica", style="B", size=15)
             self.set_text_color(59, 130, 246)  # Primary Blue
-            self.cell(0, 12, txt="DocMind AI - Executive Intelligence Report", ln=1, align='L')
+            self.cell(0, 12, text="DocMind AI - Executive Intelligence Report", new_x="LMARGIN", new_y="NEXT", align='L')
             # Accent Line
             self.set_fill_color(139, 92, 246)  # Purple
             self.rect(15, 23, 180, 1, 'F')
@@ -249,21 +273,22 @@ async def generate_report(request: dict):
     query = request.get("query", "General Summary")
     pdf.set_font("Helvetica", style="B", size=10)
     pdf.set_text_color(30, 41, 59)
-    pdf.cell(40, 8, txt="Report Focus Query: ", ln=0)
+    pdf.cell(40, 8, text="Report Focus Query: ", new_x="RIGHT", new_y="TOP")
     pdf.set_font("Helvetica", style="I", size=10)
     pdf.set_text_color(71, 85, 105)
-    pdf.cell(0, 8, txt=query, ln=1)
+    pdf.cell(0, 8, text=query, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
     
     if not GLOBAL_STATE["document_summaries"]:
         pdf.set_font("Helvetica", size=10)
         pdf.set_text_color(220, 38, 38)
-        pdf.multi_cell(0, 8, txt="No documents uploaded yet. Please upload documents in the DocMind AI Knowledge Base to generate a summary report.")
+        pdf.set_x(15)
+        pdf.multi_cell(0, 8, text="No documents uploaded yet. Please upload documents in the DocMind AI Knowledge Base to generate a summary report.")
     else:
         for doc, summary in GLOBAL_STATE["document_summaries"].items():
             pdf.set_font("Helvetica", style="B", size=11)
             pdf.set_text_color(59, 130, 246)
-            pdf.cell(0, 10, txt=f"Document: {doc}", ln=1)
+            pdf.cell(0, 10, text=f"Document: {doc}", new_x="LMARGIN", new_y="NEXT")
             
             # Clean markdown bold tags and remove emojis
             import re
@@ -274,40 +299,46 @@ async def generate_report(request: dict):
             pdf.set_text_color(30, 41, 59)
             # Encode/decode to ensure latin-1 support
             clean_summary_encoded = clean_summary.encode('latin-1', 'replace').decode('latin-1')
-            pdf.multi_cell(0, 5.5, txt=clean_summary_encoded)
+            pdf.set_x(15)
+            pdf.multi_cell(0, 5.5, text=clean_summary_encoded)
             pdf.ln(6)
             
     # Use server-side chat history (primary), merge with any frontend-sent history
     import re
-    history = GLOBAL_STATE.get("chat_history", [])
+    history = list(GLOBAL_STATE.get("chat_history", []))
     frontend_history = request.get("history", [])
     # Add any frontend history entries not already on the server
-    existing_queries = set(h.get("user", "") for h in history)
+    existing_queries = set(h.get("user", "") for h in history if h)
     for fh in frontend_history:
-        if fh.get("user", "") not in existing_queries:
+        if fh and fh.get("user", "") not in existing_queries:
             history.append(fh)
+            
     if history:
         pdf.add_page()
         pdf.set_font("Helvetica", style="B", size=12)
         pdf.set_text_color(30, 41, 59)
-        pdf.cell(0, 10, txt="Chat History", ln=1)
+        pdf.cell(0, 10, text="Chat History", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
         
         for msg in history:
+            if not msg:
+                continue
             # User Question
             pdf.set_font("Helvetica", style="B", size=10)
             pdf.set_text_color(59, 130, 246)
-            user_text = msg.get("user", "")
+            user_text = msg.get("user") or ""
             user_text = re.sub(r'[^\x00-\x7F]+', '', user_text).encode('latin-1', 'replace').decode('latin-1')
-            pdf.multi_cell(0, 6, txt=f"Q: {user_text}")
+            pdf.set_x(15)
+            pdf.multi_cell(0, 6, text=f"Q: {user_text}")
             
             # Assistant Answer
             pdf.set_font("Helvetica", size=9)
             pdf.set_text_color(71, 85, 105)
-            asst_text = msg.get("assistant", "")
+            asst_text = msg.get("assistant") or ""
             asst_text = asst_text.replace("**", "")
             asst_text = re.sub(r'[^\x00-\x7F]+', '', asst_text).encode('latin-1', 'replace').decode('latin-1')
-            pdf.multi_cell(0, 5.5, txt=f"A: {asst_text}")
+            pdf.set_x(15)
+            pdf.multi_cell(0, 5.5, text=f"A: {asst_text}")
             pdf.ln(4)
 
     pdf_bytes = pdf.output()
@@ -317,6 +348,7 @@ async def generate_report(request: dict):
         pdf_bytes = bytes(pdf_bytes)
         
     return {"pdf_base64": base64.b64encode(pdf_bytes).decode('utf-8')}
+
 
 # Mount static files for serving the frontend
 from fastapi.staticfiles import StaticFiles
