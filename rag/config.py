@@ -48,7 +48,7 @@ class Settings:
     reranker_model: str = field(
         default_factory=lambda: _get_env("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
     )
-    groq_model: str = field(default_factory=lambda: _get_env("GROQ_MODEL", "llama-3.1-8b-instant"))
+    groq_model: str = field(default_factory=lambda: _get_env("GROQ_MODEL", "llama-3.3-70b-versatile"))
     llm_temperature: float = field(default_factory=lambda: _get_float("LLM_TEMPERATURE", 0.0))
 
     # --- Credentials --------------------------------------------------------

@@ -69,12 +69,10 @@ def route_hallucination(state: AgentState):
     return "end"
 
 workflow = StateGraph(AgentState)
-workflow.add_node("retrieve", retrieve)
 workflow.add_node("generate", generate)
 workflow.add_node("grade_hallucination", grade_hallucination)
 
-workflow.set_entry_point("retrieve")
-workflow.add_edge("retrieve", "generate")
+workflow.set_entry_point("generate")
 workflow.add_edge("generate", "grade_hallucination")
 workflow.add_conditional_edges(
     "grade_hallucination",

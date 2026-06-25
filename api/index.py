@@ -146,8 +146,12 @@ async def chat(request: dict):
         query = rewrite_followup_query(llm, query, history)
         
     relevant_docs = detect_relevant_documents(query, GLOBAL_STATE["document_summaries"], llm)
-    queries = generate_multi_queries(llm, query)
-    queries.append(query)
+    # Skip multi-query for simple/short queries to save time
+    if len(query.split()) <= 8:
+        queries = [query]
+    else:
+        queries = generate_multi_queries(llm, query)
+        queries.append(query)
     
     all_results = []
     for q in set(queries):
