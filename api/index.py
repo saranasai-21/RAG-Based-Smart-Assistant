@@ -45,12 +45,17 @@ GLOBAL_STATE = {
     "metadata": [],
     "document_summaries": {},
     "uploaded_hashes": set(),
-    "uploaded_file_names": []
+    "uploaded_file_names": [],
+    "chat_history": []
 }
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "docs": len(GLOBAL_STATE["uploaded_file_names"])}
+    return {
+        "status": "ok", 
+        "docs": len(GLOBAL_STATE["uploaded_file_names"]),
+        "file_names": GLOBAL_STATE["uploaded_file_names"]
+    }
 
 @app.post("/api/upload")
 async def upload_documents(files: List[UploadFile] = File(...)):
@@ -123,6 +128,9 @@ async def chat(request: dict):
     query = request.get("query")
     history = request.get("history", [])
     
+    # Store query in server-side chat history (will be paired with response later)
+    GLOBAL_STATE["_pending_query"] = query
+    
     if not GLOBAL_STATE["bm25"]:
         raise HTTPException(status_code=400, detail="Please upload documents first.")
         
@@ -168,6 +176,7 @@ async def chat(request: dict):
     
     async def generate():
         import json
+        full_generation = ""
         yield f"data: {json.dumps({'type': 'sources', 'data': list(set([r.get('metadata', {}).get('source', '?') for r in ranked]))})}\n\n"
         
         try:
@@ -186,6 +195,7 @@ async def chat(request: dict):
                     yield f"data: {json.dumps({'type': 'agent_step', 'data': f'Agent executed: {node_name}'})}\n\n"
                     
                     if "generation" in state_update and node_name == "generate":
+                        full_generation = state_update['generation']
                         yield f"data: {json.dumps({'type': 'token', 'data': state_update['generation']})}\n\n"
                         
                     if "confidence_score" in state_update:
@@ -193,6 +203,16 @@ async def chat(request: dict):
                         
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
+        
+        # Save chat exchange to server-side history for PDF export
+        if full_generation:
+            GLOBAL_STATE["chat_history"].append({
+                "user": GLOBAL_STATE.get("_pending_query", query),
+                "assistant": full_generation
+            })
+            # Keep last 20 exchanges
+            if len(GLOBAL_STATE["chat_history"]) > 20:
+                GLOBAL_STATE["chat_history"] = GLOBAL_STATE["chat_history"][-20:]
             
         yield "data: [DONE]\n\n"
         
@@ -257,7 +277,15 @@ async def generate_report(request: dict):
             pdf.multi_cell(0, 5.5, txt=clean_summary_encoded)
             pdf.ln(6)
             
-    history = request.get("history", [])
+    # Use server-side chat history (primary), merge with any frontend-sent history
+    import re
+    history = GLOBAL_STATE.get("chat_history", [])
+    frontend_history = request.get("history", [])
+    # Add any frontend history entries not already on the server
+    existing_queries = set(h.get("user", "") for h in history)
+    for fh in frontend_history:
+        if fh.get("user", "") not in existing_queries:
+            history.append(fh)
     if history:
         pdf.add_page()
         pdf.set_font("Helvetica", style="B", size=12)

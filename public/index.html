@@ -1319,16 +1319,49 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const savedDocs = JSON.parse(localStorage.getItem('indexedDocs') || '[]');
-            if (savedDocs.length > 0) {
-                noDocsMsg.style.display = 'none';
-                savedDocs.forEach(name => {
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'indexed-doc-item';
-                    fileItem.innerHTML = `<span class="check">✓</span> <span>${name}</span>`;
-                    uploadedFilesList.appendChild(fileItem);
+            // Fetch indexed docs from server (most reliable source)
+            fetch('api/health')
+                .then(res => res.json())
+                .then(data => {
+                    const serverDocs = data.file_names || [];
+                    if (serverDocs.length > 0) {
+                        // Clear any stale localStorage and existing DOM items
+                        document.querySelectorAll('.indexed-doc-item').forEach(el => el.remove());
+                        noDocsMsg.style.display = 'none';
+                        serverDocs.forEach(name => {
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'indexed-doc-item';
+                            fileItem.innerHTML = `<span class="check">\u2713</span> <span>${name}</span>`;
+                            uploadedFilesList.appendChild(fileItem);
+                        });
+                        localStorage.setItem('indexedDocs', JSON.stringify(serverDocs));
+                    } else {
+                        // Fall back to localStorage
+                        const savedDocs = JSON.parse(localStorage.getItem('indexedDocs') || '[]');
+                        if (savedDocs.length > 0) {
+                            noDocsMsg.style.display = 'none';
+                            savedDocs.forEach(name => {
+                                const fileItem = document.createElement('div');
+                                fileItem.className = 'indexed-doc-item';
+                                fileItem.innerHTML = `<span class="check">\u2713</span> <span>${name}</span>`;
+                                uploadedFilesList.appendChild(fileItem);
+                            });
+                        }
+                    }
+                })
+                .catch(() => {
+                    // Network error - fall back to localStorage
+                    const savedDocs = JSON.parse(localStorage.getItem('indexedDocs') || '[]');
+                    if (savedDocs.length > 0) {
+                        noDocsMsg.style.display = 'none';
+                        savedDocs.forEach(name => {
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'indexed-doc-item';
+                            fileItem.innerHTML = `<span class="check">\u2713</span> <span>${name}</span>`;
+                            uploadedFilesList.appendChild(fileItem);
+                        });
+                    }
                 });
-            }
 
             const savedChat = JSON.parse(localStorage.getItem('chatMessages') || '[]');
             if (savedChat.length > 0) {
